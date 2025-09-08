@@ -85,3 +85,5 @@ MCP_USAGE.md
 monitor_usage.py
 plan.md
 .github
+tests
+scripts
