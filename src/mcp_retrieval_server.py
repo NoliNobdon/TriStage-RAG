@@ -33,7 +33,7 @@ class PipelineStatusInput(BaseModel):
     detailed: Optional[bool] = Field(False, description="Return detailed status information")
 
 class RetrievalMCPServer:
-    def __init__(self, config_path: str = "config.yaml"):
+    def __init__(self, config_path: str = "config/config.yaml"):
         self.server = Server("retrieval-mcp")
         self.pipeline = RetrievalPipeline()
         self.logger = logging.getLogger(__name__)
@@ -156,14 +156,28 @@ class RetrievalMCPServer:
 
     async def _add_documents(self, arguments: dict) -> list[types.TextContent]:
         input_data = DocumentInput(**arguments)
-        self.pipeline.add_documents(input_data.documents)
         
-        result = {
-            "success": True,
-            "documents_added": len(input_data.documents),
-            "total_documents": len(input_data.documents),  # This would need to be tracked in the pipeline
-            "message": f"Successfully added {len(input_data.documents)} documents to the pipeline"
-        }
+        try:
+            self.pipeline.add_documents(input_data.documents)
+            
+            # Get actual document count after adding
+            total_docs = 0
+            if self.pipeline.stage1:
+                total_docs = len(self.pipeline.stage1.documents)
+            
+            result = {
+                "success": True,
+                "documents_added": len(input_data.documents),
+                "total_documents": total_docs,
+                "message": f"Successfully added {len(input_data.documents)} documents to the pipeline"
+            }
+        except Exception as e:
+            result = {
+                "success": False,
+                "documents_added": 0,
+                "total_documents": 0,
+                "message": f"Error adding documents: {str(e)}"
+            }
         
         return [types.TextContent(
             type="text",
@@ -224,11 +238,24 @@ class RetrievalMCPServer:
         )]
 
     async def _clear_index(self, arguments: dict) -> list[types.TextContent]:
-        # This would need to be implemented in the pipeline
-        result = {
-            "success": True,
-            "message": "Index cleared successfully"
-        }
+        try:
+            # Clear Stage 1 index
+            if self.pipeline.stage1:
+                self.pipeline.stage1.documents = []
+                self.pipeline.stage1.doc_metadata = []
+                self.pipeline.stage1.faiss_index = None
+                self.pipeline.stage1.bm25_index = None
+            
+            result = {
+                "success": True,
+                "message": "Index cleared successfully",
+                "documents_remaining": 0
+            }
+        except Exception as e:
+            result = {
+                "success": False,
+                "message": f"Error clearing index: {str(e)}"
+            }
         
         return [types.TextContent(
             type="text",
@@ -255,13 +282,20 @@ class RetrievalMCPServer:
         )]
 
     async def _get_document_count(self, arguments: dict) -> list[types.TextContent]:
-        # This would need to be implemented in the pipeline
-        count = 0  # Placeholder
-        
-        result = {
-            "document_count": count,
-            "message": "Document count not yet implemented in pipeline"
-        }
+        try:
+            count = 0
+            if self.pipeline.stage1:
+                count = len(self.pipeline.stage1.documents)
+            
+            result = {
+                "document_count": count,
+                "message": f"Found {count} documents in index"
+            }
+        except Exception as e:
+            result = {
+                "document_count": 0,
+                "message": f"Error getting document count: {str(e)}"
+            }
         
         return [types.TextContent(
             type="text",

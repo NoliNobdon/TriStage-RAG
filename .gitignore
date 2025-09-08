@@ -78,3 +78,5 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 artifacts_filelist_tmp.txt
+
+CLAUDE.md
