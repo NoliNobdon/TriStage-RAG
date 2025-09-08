@@ -1,0 +1,18 @@
+# Core MCP and embedding dependencies
+mcp>=1.13.0
+sentence-transformers>=2.0.0
+torch>=2.0.0
+numpy>=1.21.0
+pyyaml>=6.0
+python-dotenv>=1.0.0
+
+# Development and testing dependencies
+pytest>=7.0.0
+pytest-asyncio>=0.21.0
+
+# Optional dependencies for enhanced performance
+transformers>=4.30.0
+accelerate>=0.20.0
+
+# Logging and monitoring
+structlog>=22.0.0
