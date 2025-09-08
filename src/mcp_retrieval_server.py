@@ -16,7 +16,7 @@ from pathlib import Path
 import sys
 import os
 
-from retrieval_pipeline import RetrievalPipeline
+from .retrieval_pipeline import RetrievalPipeline
 
 class SearchInput(BaseModel):
     query: str = Field(..., description="Search query text")

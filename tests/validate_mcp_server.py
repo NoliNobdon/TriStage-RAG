@@ -13,12 +13,12 @@ def validate_mcp_server():
     print("Validating MCP Server Implementation...")
     
     # Test 1: Check if MCP server file exists
-    mcp_file = Path(__file__).parent.parent / "src" / "mcp_embedding_server.py"
+    mcp_file = Path(__file__).parent.parent / "src" / "mcp_retrieval_server.py"
     if not mcp_file.exists():
-        print("FAIL: mcp_embedding_server.py not found")
+        print("FAIL: mcp_retrieval_server.py not found")
         return False
     else:
-        print("PASS: mcp_embedding_server.py exists")
+        print("PASS: mcp_retrieval_server.py exists")
     
     # Test 2: Check if embedding service exists
     service_file = Path(__file__).parent.parent / "src" / "embedding_service.py"
@@ -38,10 +38,10 @@ def validate_mcp_server():
     
     # Test 4: Try to import MCP server
     try:
-        from mcp_embedding_server import EmbeddingMCPServer
-        print("PASS: Successfully imported EmbeddingMCPServer")
+        from mcp_retrieval_server import RetrievalMCPServer
+        print("PASS: Successfully imported RetrievalMCPServer")
     except ImportError as e:
-        print(f"FAIL: Failed to import EmbeddingMCPServer: {e}")
+        print(f"FAIL: Failed to import RetrievalMCPServer: {e}")
         return False
     
     # Test 5: Try to import embedding service
@@ -55,8 +55,8 @@ def validate_mcp_server():
     # Test 6: Check MCP server class structure
     try:
         # Check if the class has the required methods
-        server_class = EmbeddingMCPServer
-        required_methods = ['_setup_handlers', '_encode_query', '_encode_documents', '_get_model_info_resource']
+        server_class = RetrievalMCPServer
+        required_methods = ['_setup_handlers', '_search', '_add_documents', '_get_pipeline_status']
         
         missing_methods = []
         for method in required_methods:
@@ -64,17 +64,17 @@ def validate_mcp_server():
                 missing_methods.append(method)
         
         if missing_methods:
-            print(f"FAIL: EmbeddingMCPServer missing methods: {missing_methods}")
+            print(f"FAIL: RetrievalMCPServer missing methods: {missing_methods}")
             return False
         else:
-            print("PASS: EmbeddingMCPServer has all required methods")
+            print("PASS: RetrievalMCPServer has all required methods")
     except Exception as e:
         print(f"FAIL: Error checking MCP server structure: {e}")
         return False
     
     # Test 7: Check Pydantic models
     try:
-        from mcp_embedding_server import EmbeddingInput, DocumentInput, SimilarityInput, BatchInput
+        from mcp_retrieval_server import SearchInput, DocumentInput, BatchSearchInput, PipelineStatusInput
         print("PASS: All Pydantic models imported successfully")
     except ImportError as e:
         print(f"FAIL: Failed to import Pydantic models: {e}")
@@ -82,9 +82,10 @@ def validate_mcp_server():
     
     # Test 8: Check config structure
     try:
-        config = EmbeddingConfig()
-        required_attrs = ['model_mode', 'default_model', 'device', 'max_length', 'batch_size', 'cache_dir', 
-                         'enable_caching', 'cache_size', 'log_level', 'log_format', 'log_file', 'models']
+        from retrieval_pipeline import PipelineConfig
+        config = PipelineConfig()
+        required_attrs = ['stage1_model', 'stage2_model', 'stage3_model', 'device', 'cache_dir', 'index_dir', 
+                         'log_level', 'enable_timing', 'auto_cleanup']
         
         missing_attrs = []
         for attr in required_attrs:
@@ -92,21 +93,21 @@ def validate_mcp_server():
                 missing_attrs.append(attr)
         
         if missing_attrs:
-            print(f"FAIL: EmbeddingConfig missing attributes: {missing_attrs}")
+            print(f"FAIL: PipelineConfig missing attributes: {missing_attrs}")
             return False
         else:
-            print("PASS: EmbeddingConfig has all required attributes")
+            print("PASS: PipelineConfig has all required attributes")
     except Exception as e:
-        print(f"FAIL: Error checking EmbeddingConfig: {e}")
+        print(f"FAIL: Error checking PipelineConfig: {e}")
         return False
     
     # Test 9: Validate MCP tools structure
     try:
         # Check if we can create input models
-        embedding_input = EmbeddingInput(text="test")
+        search_input = SearchInput(query="test query")
         document_input = DocumentInput(documents=["test1", "test2"])
-        similarity_input = SimilarityInput(query_embedding=[0.1, 0.2], document_embeddings=[[0.1, 0.2], [0.3, 0.4]])
-        batch_input = BatchInput(documents_list=[["doc1"], ["doc2", "doc3"]])
+        batch_search_input = BatchSearchInput(queries=["query1", "query2"])
+        pipeline_status_input = PipelineStatusInput(detailed=True)
         
         print("PASS: All input models can be instantiated")
     except Exception as e:
@@ -131,13 +132,13 @@ def validate_mcp_server():
     print("\nMCP Server Validation Summary:")
     print("SUCCESS: All 10 validation tests passed!")
     print("\nMCP Server Features:")
-    print("- 7 embedding tools (encode_query, encode_documents, compute_similarity, etc.)")
-    print("- 3 model resources (info, config, status)")
+    print("- 7 retrieval tools (search, add_documents, batch_search, etc.)")
+    print("- 3 pipeline resources (info, config, status)")
     print("- Pydantic input validation")
     print("- Error handling and logging")
-    print("- Integration with production EmbeddingService")
+    print("- Integration with 3-stage RetrievalPipeline")
     print("- Configuration management")
-    print("- Caching support")
+    print("- GPU memory optimization")
     
     return True
 
