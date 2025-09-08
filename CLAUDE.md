@@ -1,5 +1,21 @@
 # Claude Working Style
 
+Use mcp server
+
+## MCP Server Tools
+- **search**: Perform 3-stage retrieval search for relevant documents
+- **add_documents**: Add documents to the retrieval pipeline index  
+- **batch_search**: Perform multiple search queries efficiently
+- **get_pipeline_status**: Get current status and information about the retrieval pipeline
+- **clear_index**: Clear all documents from the retrieval pipeline index
+- **health_check**: Check the health status of the retrieval pipeline
+- **get_document_count**: Get the number of documents currently indexed
+
+## MCP Server Resources
+- **pipeline://info**: 3-stage retrieval pipeline specifications and capabilities
+- **pipeline://config**: Current pipeline configuration parameters
+- **pipeline://status**: Current pipeline status and performance metrics
+
 ## Communication Style
 - Concise and direct responses
 - Minimal preamble/postamble
