@@ -381,7 +381,7 @@ class RetrievalMCPServer:
 
 async def main():
     logging.basicConfig(level=logging.INFO)
-    server = RetrievalMCPServer()
+    server = RetrievalMCPServer("config/config.yaml")
     
     async with mcp.server.stdio.stdio_server() as (read_stream, write_stream):
         await server.server.run(

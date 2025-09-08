@@ -169,8 +169,8 @@ python demo.py
 
 #### MCP Server
 ```bash
-# Start the MCP retrieval server
-python src/mcp_retrieval_server.py
+# Start the MCP retrieval server (run from repo root)
+python -m src.mcp_retrieval_server
 ```
 
 #### Programmatic Pipeline Usage
