@@ -80,15 +80,15 @@ rag_mcp/
 │   └── __init__.py            # Package initialization
 ├── config/
 │   └── config.yaml           # Unified configuration
-├── tests/
-│   ├── validate_mcp_server.py # MCP server tests
-│   └── test_pipeline.py       # Pipeline tests
 ├── models/                    # Downloaded models (~2-5GB)
 ├── faiss_index/               # FAISS index storage
-├── docs/                      # Research papers
+├── logs/                      # Log files directory
 ├── demo.py                    # Interactive demo
-├── monitor_usage.py           # Usage monitoring
-└── README.md                  # This file
+├── run_mcp_server.py          # MCP server runner
+├── requirements.txt           # Python dependencies
+├── .env.example              # Environment variables template
+├── LICENSE                   # MIT License
+└── README.md                 # This file
 ```
 
 ## 🚀 System Components
@@ -152,11 +152,11 @@ git clone <repository-url>
 cd rag_mcp
 
 # Install dependencies
-pip install torch sentence-transformers faiss-cpu transformers pyyaml mcp numpy
+pip install -r requirements.txt
 
 # Configure environment
 cp .env.example .env
-# Edit .env with your Hugging Face token if needed
+# Edit .env with your Hugging Face token if needed (use HUGGINGFACE_HUB_TOKEN variable)
 ```
 
 ### Basic Usage
@@ -170,7 +170,7 @@ python demo.py
 #### MCP Server
 ```bash
 # Start the MCP retrieval server (run from repo root)
-python -m src.mcp_retrieval_server
+python run_mcp_server.py
 ```
 
 #### Programmatic Pipeline Usage
@@ -178,7 +178,7 @@ python -m src.mcp_retrieval_server
 from src.retrieval_pipeline import RetrievalPipeline
 
 # Initialize pipeline
-pipeline = RetrievalPipeline('config/config.yaml')
+pipeline = RetrievalPipeline()
 
 # Add documents
 documents = ["Your documents here..."]
@@ -208,7 +208,7 @@ for result in results['results']:
 ### Expected Performance (4GB VRAM System)
 | Component | Time | VRAM Usage | Output |
 |-----------|------|-----------|--------|
-| **Stage 1** | 50-150ms | ~1GB | 500-800 candidates |
+| **Stage 1** | 50-150ms | ~1GB | 500 candidates |
 | **Stage 2** | 200-400ms | ~2GB | 100 candidates |
 | **Stage 3** | 100-250ms | ~1GB | 20 results |
 | **Total** | **350-800ms** | **~4GB** | **20 results** |
@@ -261,17 +261,11 @@ pipeline:
 
 ### Test Suite
 ```bash
-# Test the 3-stage pipeline
-python tests/test_pipeline.py
-
-# Validate MCP server functionality  
-python tests/validate_mcp_server.py
-
 # Run interactive demo
 python demo.py
 
-# Monitor system usage
-python monitor_usage.py
+# Start MCP server for testing
+python run_mcp_server.py
 ```
 
 ## 🎯 Why This Architecture?
@@ -327,10 +321,11 @@ MIT License - see LICENSE file for details.
 ## 🆘 Support
 
 For issues and questions:
-1. Check the troubleshooting section in docs
-2. Review test outputs and logs
-3. Open an issue with detailed error information
-4. Include system specs (GPU/RAM) and configuration
+1. Check the logs in the logs/ directory
+2. Review demo.py output for basic functionality testing
+3. Ensure all dependencies are installed via requirements.txt
+4. Verify Hugging Face token is set in .env if needed
+5. Check GPU/CPU compatibility with your system
 
 ---
 
