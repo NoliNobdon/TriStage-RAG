@@ -80,3 +80,7 @@ yarn-error.log*
 artifacts_filelist_tmp.txt
 
 CLAUDE.md
+best_practices.md
+MCP_USAGE.md
+monitor_usage.py
+plan.md
