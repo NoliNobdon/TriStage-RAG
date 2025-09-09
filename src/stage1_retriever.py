@@ -144,9 +144,14 @@ class Stage1Retriever:
             if device == "auto":
                 device = "cuda" if torch.cuda.is_available() else "cpu"
             
+            # Prefer flattened local dir: <cache_dir>/<basename>, then legacy nested dir
+            base_dir = os.path.join(self.config.cache_dir, os.path.basename(self.config.model_name))
+            legacy_dir = os.path.join(self.config.cache_dir, self.config.model_name)
+            local_model_dir = base_dir if os.path.isdir(base_dir) else (legacy_dir if os.path.isdir(legacy_dir) else None)
+            model_source = local_model_dir or self.config.model_name
             try:
                 self.model = SentenceTransformer(
-                    self.config.model_name,
+                    model_source,
                     device=device,
                     cache_folder=self.config.cache_dir
                 )
@@ -166,8 +171,12 @@ class Stage1Retriever:
                         f"Falling back to lightweight model '{fallback_model}'."
                     )
                     self.config.model_name = fallback_model
+                    base_dir = os.path.join(self.config.cache_dir, os.path.basename(self.config.model_name))
+                    legacy_dir = os.path.join(self.config.cache_dir, self.config.model_name)
+                    local_model_dir = base_dir if os.path.isdir(base_dir) else (legacy_dir if os.path.isdir(legacy_dir) else None)
+                    model_source = local_model_dir or self.config.model_name
                     self.model = SentenceTransformer(
-                        self.config.model_name,
+                        model_source,
                         device=device,
                         cache_folder=self.config.cache_dir
                     )

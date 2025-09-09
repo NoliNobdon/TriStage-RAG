@@ -57,8 +57,13 @@ class CrossEncoderReranker:
             
             # Try to load as CrossEncoder first (preferred)
             try:
+                import os
+                base_dir = os.path.join(self.config.cache_dir, os.path.basename(self.config.model_name))
+                legacy_dir = os.path.join(self.config.cache_dir, self.config.model_name)
+                local_model_dir = base_dir if os.path.isdir(base_dir) else (legacy_dir if os.path.isdir(legacy_dir) else None)
+                model_source = local_model_dir or self.config.model_name
                 self.model = CrossEncoder(
-                    self.config.model_name,
+                    model_source,
                     device=self.device,
                     max_length=self.config.max_length,
                     cache_folder=self.config.cache_dir
@@ -71,12 +76,12 @@ class CrossEncoderReranker:
                 
                 # Load tokenizer and model separately
                 self.tokenizer = AutoTokenizer.from_pretrained(
-                    self.config.model_name,
+                    model_source,
                     cache_dir=self.config.cache_dir
                 )
                 
                 self.model = AutoModelForSequenceClassification.from_pretrained(
-                    self.config.model_name,
+                    model_source,
                     cache_dir=self.config.cache_dir
                 )
                 

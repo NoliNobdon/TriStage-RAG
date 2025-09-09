@@ -1,0 +1,54 @@
+# 3-Stage Retrieval Pipeline Configuration
+
+# General pipeline settings
+pipeline:
+  device: "cpu"  # cuda, cpu, auto
+  cache_dir: "../models"
+  index_dir: "../faiss_index"
+  log_level: "INFO"
+  log_file: "retrieval_pipeline.log"
+  enable_timing: true
+  save_intermediate_results: false
+  auto_cleanup: true
+  max_memory_usage_gb: 4.0
+  
+  # Stage 1: Fast Candidate Generation
+  stage1:
+    model: "google/embeddinggemma-300m"
+    top_k: 50
+    batch_size: 16
+    max_text_length: 512
+    enable_bm25: true
+    bm25_top_k: 100
+    fusion_method: "rrf"  # "rrf" or "weighted"
+    use_fp16: false
+    # Reciprocal Rank Fusion parameters
+    rrf_k: 60
+    dense_weight: 0.7
+    bm25_weight: 0.3
+    # FAISS parameters
+    nlist: 100  # IVF clusters
+    nprobe: 10  # search probes
+    
+  # Stage 2: Multi-Vector Rescoring
+  stage2:
+    model: "lightonai/GTE-ModernColBERT-v1"
+    top_k: 20
+    batch_size: 8
+    max_seq_length: 192
+    use_fp16: false
+    scoring_method: "maxsim"  # "maxsim" or "colbert"
+    pooling_method: "cls"  # "cls", "mean", or "max"
+    normalize_embeddings: true
+    use_gpu_if_available: false
+    
+  # Stage 3: Cross-Encoder Reranking
+  stage3:
+    model: "cross-encoder/ms-marco-MiniLM-L6-v2"
+    top_k: 10
+    batch_size: 16
+    max_length: 256
+    use_fp16: false
+    use_gpu_if_available: false
+    activation_fxn: "sigmoid"  # "sigmoid" or "softmax"
+    normalize_scores: true

@@ -90,4 +90,6 @@ scripts
 AGENTS.md
 benchmark/__pycache__
 benchmark/limit_dataset
-benchmark/models
+benchmark/mteb_results
+data
+documents

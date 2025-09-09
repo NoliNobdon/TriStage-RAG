@@ -56,14 +56,19 @@ class ColBERTScorer:
         try:
             self.logger.info(f"Loading Stage 2 model: {self.config.model_name}")
             
-            # Load tokenizer and model
+            # Load tokenizer and model, prefer local model directory under cache_dir
+            import os
+            base_dir = os.path.join(self.config.cache_dir, os.path.basename(self.config.model_name))
+            legacy_dir = os.path.join(self.config.cache_dir, self.config.model_name)
+            local_model_dir = base_dir if os.path.isdir(base_dir) else (legacy_dir if os.path.isdir(legacy_dir) else None)
+            model_source = local_model_dir or self.config.model_name
             self.tokenizer = AutoTokenizer.from_pretrained(
-                self.config.model_name,
+                model_source,
                 cache_dir=self.config.cache_dir
             )
             
             self.model = AutoModel.from_pretrained(
-                self.config.model_name,
+                model_source,
                 cache_dir=self.config.cache_dir
             )
             

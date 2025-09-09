@@ -78,12 +78,20 @@ rag_mcp/
 │   ├── stage2_rescorer.py      # Stage 2: ColBERT MaxSim
 │   ├── stage3_reranker.py      # Stage 3: Cross-encoder
 │   └── __init__.py            # Package initialization
+├── benchmark/                 # MTEB evaluation suite
+│   ├── run_mteb_evaluation.py  # MTEB benchmark runner
+│   ├── tristage_mteb_model.py # MTEB-compatible 3-stage model
+│   ├── limit_mteb_tasks.py    # LIMIT dataset tasks
+│   ├── download_limit_dataset.py # Dataset downloader
+│   ├── download_models.py     # Model downloader
+│   └── limit_dataset/         # Auto-downloaded datasets
 ├── config/
 │   └── config.yaml           # Unified configuration
 ├── models/                    # Downloaded models (~2-5GB)
 ├── faiss_index/               # FAISS index storage
 ├── logs/                      # Log files directory
 ├── demo.py                    # Interactive demo
+├── run_benchmark.py           # **NEW**: Complete workflow automation
 ├── run_mcp_server.py          # MCP server runner
 ├── requirements.txt           # Python dependencies
 ├── .env.example              # Environment variables template
@@ -156,7 +164,161 @@ pip install -r requirements.txt
 
 # Configure environment
 cp .env.example .env
-# Edit .env with your Hugging Face token if needed (use HUGGINGFACE_HUB_TOKEN variable)
+# Edit .env with your Hugging Face token if needed (use HUGGING_FACE_HUB_TOKEN variable)
+```
+
+### One-Click Complete Workflow
+
+**New: Single Script Automation**
+```bash
+# Run the complete benchmark workflow automatically
+python run_benchmark.py
+```
+
+This single script handles everything:
+- **Step 1**: Automatically downloads LIMIT dataset if not available
+- **Step 2**: Automatically downloads all required models (including gated models)
+- **Step 3**: Runs the complete MTEB benchmark evaluation
+
+**Environment Variables for Automation:**
+```bash
+# Optional: Set in .env file for custom behavior
+TRISTAGE_DEVICE=auto          # auto, cuda, cpu
+TRISTAGE_LOW_MEMORY=false     # true for low-memory mode
+LOG_LEVEL=INFO               # DEBUG, INFO, WARNING, ERROR
+HUGGING_FACE_HUB_TOKEN=your_token  # For gated models
+TRISTAGE_SAMPLE_SIZE=1000     # Number of documents to sample (null for full)
+```
+
+### Configuration File Customization
+
+The benchmark uses `benchmark/config.yaml` for all settings. Key sections to edit:
+
+**📁 File: `benchmark/config.yaml`**
+
+```yaml
+# Lines 4-7: Basic settings
+benchmark:
+  device: "auto"              # Line 5: Change to "cuda" or "cpu"
+  low_memory_mode: false      # Line 7: Set to true for limited RAM systems
+  
+  # Lines 15-18: Dataset settings
+  dataset:
+    sample_size: null        # Line 18: Set to number (e.g., 100) for testing
+    
+  # Lines 26-34: Stage 1 model settings
+  stage1:
+    batch_size: 32           # Line 32: Adjust batch size (e.g., 64, 128, 256)
+    top_k: 500               # Line 33: Number of candidates to retrieve
+    
+  # Lines 36-44: Stage 2 model settings  
+  stage2:
+    batch_size: 16           # Line 40: ColBERT batch size
+    top_k: 100               # Line 41: Candidates to keep after reranking
+    
+  # Lines 46-54: Stage 3 model settings
+  stage3:
+    batch_size: 32           # Line 49: Cross-encoder batch size
+    top_k: 20                # Line 50: Final results to return
+    
+  # Lines 65-67: MTEB evaluation settings
+  evaluation:
+    encode_kwargs:
+      batch_size: 32         # Line 66: MTEB encoding batch size
+```
+
+### Code Customization Points
+
+**📁 File: `run_benchmark.py`**
+
+```python
+# Line 110-120: Task selection - modify which tasks to run
+tasks = []
+for task_name in config.get_tasks():
+    if task_name == "LIMITSmallRetrieval":  # Quick test
+        tasks.append(LIMITSmallRetrieval())
+    elif task_name == "LIMITRetrieval":     # Full evaluation
+        tasks.append(LIMITRetrieval())
+
+# Line 135-144: Evaluation parameters - modify MTEB behavior
+encode_kwargs = config.get("benchmark.evaluation.encode_kwargs", {'batch_size': 32})
+results = evaluation.run(
+    model,
+    output_folder=str(output_path),
+    encode_kwargs=encode_kwargs,
+    overwrite_results=True
+)
+```
+
+**📁 File: `benchmark/config_loader.py`**
+
+```python
+# Line 88-95: Environment variable overrides - add custom env vars
+def _apply_env_overrides(self, config: Dict[str, Any]):
+    if os.getenv("TRISTAGE_DEVICE"):
+        config["benchmark"]["device"] = os.getenv("TRISTAGE_DEVICE")
+    # Add your custom environment variables here
+```
+
+**📁 File: `benchmark/tristage_mteb_model.py`**
+
+```python
+# Line 50-80: Model initialization - modify pipeline behavior
+class TriStageMTEBModel:
+    def __init__(self, device="auto", cache_dir="../models", 
+                 index_dir="./faiss_index", pipeline_config=None):
+        # Customize model loading and pipeline configuration
+```
+
+### Common Customization Scenarios
+
+**🎯 Quick Testing (Small Dataset)**
+```yaml
+# In benchmark/config.yaml
+dataset:
+  sample_size: 100  # Only use 100 documents for testing
+evaluation:
+  tasks:
+    - "LIMITSmallRetrieval"  # Only run quick evaluation
+```
+
+**⚡ Performance Optimization (Large Batch Size)**
+```yaml
+# In benchmark/config.yaml
+stage1:
+  batch_size: 256          # Larger batches for GPU
+stage2:
+  batch_size: 64           # Larger ColBERT batches
+stage3:
+  batch_size: 128          # Larger cross-encoder batches
+evaluation:
+  encode_kwargs:
+    batch_size: 256        # Match stage1 batch size
+```
+
+**💾 Low Memory Mode (Limited RAM)**
+```bash
+# Set environment variable
+export TRISTAGE_LOW_MEMORY=true
+# Or edit config.yaml:
+# low_memory_mode: true
+```
+
+**🔧 CPU-Only Mode**
+```bash
+# Set environment variable
+export TRISTAGE_DEVICE=cpu
+# Or edit config.yaml line 5:
+# device: "cpu"
+```
+
+**📊 Custom Task Selection**
+```yaml
+# In benchmark/config.yaml
+evaluation:
+  tasks:
+    - "LIMITSmallRetrieval"  # Quick test (46 docs, 1000 queries)
+    # - "LIMITRetrieval"     # Comment out full evaluation
 ```
 
 ### Basic Usage
@@ -259,13 +421,28 @@ pipeline:
 
 ## 🧪 Testing
 
-### Test Suite
+### Complete Automated Testing
+```bash
+# Run the complete benchmark workflow (recommended)
+python run_benchmark.py
+```
+
+### Individual Component Testing
 ```bash
 # Run interactive demo
 python demo.py
 
 # Start MCP server for testing
 python run_mcp_server.py
+
+# Check model availability only
+python benchmark/download_models.py --info
+
+# Download models only
+python benchmark/download_models.py --check-only
+
+# Run MTEB benchmark manually
+python benchmark/run_mteb_evaluation.py --tasks LIMITSmallRetrieval
 ```
 
 ## 🎯 Why This Architecture?
