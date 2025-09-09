@@ -87,3 +87,5 @@ plan.md
 .github
 tests
 scripts
+AGENTS.md
+benchmark

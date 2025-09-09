@@ -144,11 +144,35 @@ class Stage1Retriever:
             if device == "auto":
                 device = "cuda" if torch.cuda.is_available() else "cpu"
             
-            self.model = SentenceTransformer(
-                self.config.model_name,
-                device=device,
-                cache_folder=self.config.cache_dir
-            )
+            try:
+                self.model = SentenceTransformer(
+                    self.config.model_name,
+                    device=device,
+                    cache_folder=self.config.cache_dir
+                )
+            except Exception as e:
+                # Handle low memory / Windows paging file issues by falling back to a smaller model
+                err_msg = str(e).lower()
+                low_mem_signatures = [
+                    "paging file is too small",
+                    "out of memory",
+                    "cuda out of memory",
+                    "os error 1455"
+                ]
+                if any(sig in err_msg for sig in low_mem_signatures):
+                    fallback_model = "sentence-transformers/all-MiniLM-L6-v2"
+                    self.logger.warning(
+                        f"Low-memory issue while loading '{self.config.model_name}': {e}. "
+                        f"Falling back to lightweight model '{fallback_model}'."
+                    )
+                    self.config.model_name = fallback_model
+                    self.model = SentenceTransformer(
+                        self.config.model_name,
+                        device=device,
+                        cache_folder=self.config.cache_dir
+                    )
+                else:
+                    raise
             
             # Get embedding dimension
             if hasattr(self.model, 'get_sentence_embedding_dimension'):
