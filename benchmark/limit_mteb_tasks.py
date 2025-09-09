@@ -10,6 +10,12 @@ from pathlib import Path
 from typing import Dict, List, Any, Optional
 import logging
 
+# Prefer configured dataset location inside benchmark folder
+try:
+    from .config_loader import BenchmarkConfig  # type: ignore
+except Exception:
+    BenchmarkConfig = None  # Fallback if import fails during doc generation
+
 from mteb.abstasks.AbsTaskRetrieval import AbsTaskRetrieval
 from mteb.abstasks.TaskMetadata import TaskMetadata
 
@@ -64,14 +70,29 @@ class LIMITSmallRetrieval(AbsTaskRetrieval):
         
     def _load_local_data(self, version: str = "small"):
         """Load LIMIT dataset from local files and return python dicts in MTEB format"""
-        # Try multiple possible paths
-        possible_paths = [
-            Path("./limit"),
-            Path("./limit_dataset"), 
-            Path("../limit"),
-            Path("../limit_dataset"),
+        # Build preferred paths: configured benchmark path first
+        preferred_paths: List[Path] = []
+        try:
+            if BenchmarkConfig is not None:
+                cfg = BenchmarkConfig()
+                # Dataset path is configured relative to benchmark folder
+                benchmark_dir = Path(__file__).parent
+                configured = benchmark_dir / cfg.get("benchmark.dataset.dataset_path", "./limit_dataset")
+                preferred_paths.append(configured.resolve())
+        except Exception:
+            # Ignore config load errors and fallback to defaults
+            pass
+
+        # Fallback candidates (prefer benchmark folder variants first)
+        possible_paths = preferred_paths + [
+            Path(__file__).parent / "limit_dataset",
+            Path(__file__).parent / "limit",
+            Path("benchmark/limit_dataset"),
             Path("benchmark/limit"),
-            Path("benchmark/limit_dataset")
+            Path("./limit_dataset"),
+            Path("./limit"),
+            Path("../limit_dataset"),
+            Path("../limit"),
         ]
         
         limit_path = None
@@ -195,14 +216,27 @@ class LIMITRetrieval(AbsTaskRetrieval):
         
     def _load_local_data(self, version: str = "full"):
         """Load LIMIT dataset from local files and return python dicts in MTEB format"""
-        # Try multiple possible paths
-        possible_paths = [
-            Path("./limit"),
-            Path("./limit_dataset"), 
-            Path("../limit"),
-            Path("../limit_dataset"),
+        # Build preferred paths: configured benchmark path first
+        preferred_paths: List[Path] = []
+        try:
+            if BenchmarkConfig is not None:
+                cfg = BenchmarkConfig()
+                benchmark_dir = Path(__file__).parent
+                configured = benchmark_dir / cfg.get("benchmark.dataset.dataset_path", "./limit_dataset")
+                preferred_paths.append(configured.resolve())
+        except Exception:
+            pass
+
+        # Fallback candidates (prefer benchmark folder variants first)
+        possible_paths = preferred_paths + [
+            Path(__file__).parent / "limit_dataset",
+            Path(__file__).parent / "limit",
+            Path("benchmark/limit_dataset"),
             Path("benchmark/limit"),
-            Path("benchmark/limit_dataset")
+            Path("./limit_dataset"),
+            Path("./limit"),
+            Path("../limit_dataset"),
+            Path("../limit"),
         ]
         
         limit_path = None

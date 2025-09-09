@@ -63,20 +63,27 @@ class TriStageMTEBModel:
         """
         self.logger = logging.getLogger(__name__)
 
-        # Initialize the 3-stage pipeline
+        # Normalize cache_dir and index_dir relative to repo root (parent of benchmark)
+        repo_root = Path(__file__).parent.parent
+        if not Path(cache_dir).is_absolute():
+            cache_dir = str((repo_root / cache_dir).resolve())
+        if not Path(index_dir).is_absolute():
+            index_dir = str((repo_root / index_dir).resolve())
+
+        # Initialize the 3-stage pipeline with normalized paths
         if pipeline_config:
+            # Update the pipeline config to use normalized paths
+            pipeline_config['cache_dir'] = cache_dir
+            pipeline_config.setdefault('index_dir', index_dir)
             config = PipelineConfig(**pipeline_config)
             self.pipeline = RetrievalPipeline(config=config)
         else:
-            self.pipeline = RetrievalPipeline()
+            config = PipelineConfig(cache_dir=cache_dir, index_dir=index_dir)
+            self.pipeline = RetrievalPipeline(config=config)
 
-        # Override device and cache settings if provided
+        # Override device setting if provided
         if device != "auto":
             self.pipeline.config.device = device
-        if cache_dir != "./models":
-            self.pipeline.config.cache_dir = cache_dir
-        if index_dir != "./faiss_index":
-            self.pipeline.config.index_dir = index_dir
 
         # MTEB requires these attributes
         self.similarity_metric_name = "cosine"
@@ -93,7 +100,7 @@ class TriStageMTEBModel:
         # Model card data to eliminate warning
         self.model_card_data = ModelCard()
 
-        self.logger.info("TriStageMTEBModel initialized with 3-stage pipeline")
+        self.logger.info("TriStageMTEBModel initialized with top-level model path")
         # Proactively initialize stages lazily upon first encode/search
     
     def encode(self, 

@@ -8,8 +8,10 @@ import logging
 import argparse
 import time
 import json
+import os
 from pathlib import Path
 import sys
+from dotenv import load_dotenv
 
 # Add src to path
 sys.path.append(str(Path(__file__).parent.parent))
@@ -17,6 +19,8 @@ sys.path.append(str(Path(__file__).parent.parent))
 # Import our custom model and tasks
 from tristage_mteb_model import TriStageMTEBModel
 from limit_mteb_tasks import LIMITSmallRetrieval, LIMITRetrieval
+from download_limit_dataset import LIMITDatasetDownloader
+from download_models import ModelDownloader
 
 # Try to import MTEB
 try:
@@ -111,6 +115,12 @@ def evaluate_with_mteb(model, tasks, output_folder="results"):
 
 def main():
     """Main evaluation function"""
+    # Load .env file if it exists
+    env_path = Path(__file__).parent.parent / ".env"
+    if env_path.exists():
+        load_dotenv(env_path)
+        print(f"Loaded environment variables from {env_path}")
+    
     parser = argparse.ArgumentParser(description="Evaluate TriStage-RAG with MTEB on LIMIT dataset")
     parser.add_argument("--tasks", nargs="+", 
                        default=["LIMITSmallRetrieval"],
@@ -123,7 +133,7 @@ def main():
                        default="INFO", help="Logging level")
     parser.add_argument("--device", type=str, default="auto",
                        help="Device to run models on")
-    parser.add_argument("--cache-dir", type=str, default="./models",
+    parser.add_argument("--cache-dir", type=str, default="../models",
                        help="Model cache directory")
     parser.add_argument("--index-dir", type=str, default="./faiss_index",
                        help="FAISS index directory")
@@ -133,8 +143,46 @@ def main():
                        help="Use low-memory settings and smaller models to avoid OOM/paging errors")
     parser.add_argument("--stage1-model", type=str, default=None,
                        help="Override Stage 1 model name (e.g., sentence-transformers/all-MiniLM-L6-v2)")
+    parser.add_argument("--download-models-only", action="store_true",
+                       help="Only download models, don't run evaluation")
+    parser.add_argument("--check-models", action="store_true",
+                       help="Only check model availability, don't run evaluation")
+    parser.add_argument("--clean-models", action="store_true",
+                       help="Clean up all downloaded models")
+    parser.add_argument("--hf-token", type=str, default=None,
+                       help="Hugging Face token for gated models (or set HF_TOKEN env var)")
     
     args = parser.parse_args()
+    
+    # Get Hugging Face token from multiple sources (priority: argument > env var > .env file)
+    hf_token = (
+        args.hf_token or 
+        os.getenv("HF_TOKEN") or 
+        os.getenv("HUGGING_FACE_HUB_TOKEN")
+    )
+    
+    # Handle model management commands
+    if args.clean_models:
+        print("Cleaning up models...")
+        model_downloader = ModelDownloader(args.cache_dir, hf_token)
+        model_downloader.clean_models()
+        return
+    
+    if args.check_models:
+        print("Checking model availability...")
+        model_downloader = ModelDownloader(args.cache_dir, hf_token)
+        model_info = model_downloader.get_model_info()
+        print(json.dumps(model_info, indent=2))
+        return
+    
+    if args.download_models_only:
+        print("Downloading models only...")
+        model_downloader = ModelDownloader(args.cache_dir, hf_token)
+        if model_downloader.download_all_models(low_memory=args.low_mem):
+            print("✅ Models downloaded successfully!")
+        else:
+            print("❌ Failed to download some models")
+        return
     
     # Setup logging
     setup_logging(args.log_level)
@@ -163,9 +211,27 @@ def main():
                 limit_path = path
                 break
         
+        # If not found, try to download it
         if not limit_path:
-            print("Error: LIMIT dataset not found. Please specify --limit-path")
-            return
+            print("LIMIT dataset not found. Attempting to download...")
+            # Use absolute path to ensure dataset downloads inside benchmark folder
+            downloader = LIMITDatasetDownloader(str(Path(__file__).parent / "limit_dataset"))
+            
+            # Try to download limit-small first (smaller dataset)
+            if downloader.download_dataset("limit-small"):
+                limit_path = Path(__file__).parent / "limit_dataset" / "limit-small"
+                print(f"Successfully downloaded LIMIT-small dataset to: {limit_path}")
+            else:
+                # Try to download full limit dataset as fallback
+                print("Failed to download limit-small, trying full limit dataset...")
+                if downloader.download_dataset("limit"):
+                    limit_path = Path(__file__).parent / "limit_dataset" / "limit"
+                    print(f"Successfully downloaded LIMIT dataset to: {limit_path}")
+                else:
+                    print("Error: Failed to download LIMIT dataset automatically")
+                    print("Please download it manually using:")
+                    print("  python download_limit_dataset.py --dataset limit-small")
+                    return
     
     print(f"Using LIMIT dataset from: {limit_path}")
     
@@ -187,6 +253,22 @@ def main():
         return
     
     print("Initializing TriStage-RAG model for MTEB evaluation...")
+    
+    # Check and download models if needed
+    print("Checking model availability...")
+    model_downloader = ModelDownloader(args.cache_dir, hf_token)
+    
+    if not model_downloader.ensure_models_available(low_memory=args.low_mem):
+        print("Error: Failed to ensure models are available")
+        return
+    
+    # Show model information
+    model_info = model_downloader.get_model_info()
+    print(f"Models directory: {model_info['models_dir']}")
+    print(f"Total model size: {model_info['total_size_mb']} MB")
+    for stage, info in model_info['models'].items():
+        status = "✅ Complete" if info['complete'] else "❌ Incomplete"
+        print(f"  {stage}: {info['name']} - {status}")
     
     # Create the model
     # Optional low-memory overrides

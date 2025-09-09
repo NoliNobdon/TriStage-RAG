@@ -1,0 +1,108 @@
+# Benchmark Configuration for TriStage-RAG MTEB Evaluation
+# Optimized for automated testing and evaluation workflows
+#
+# Available Datasets from Google DeepMind LIMIT:
+# - limit-small: Quick evaluation (~1K queries, 10K docs) - Fast testing
+# - limit: Complete evaluation (~50K queries, 250K docs) - Full benchmark
+
+# General benchmark settings
+benchmark:
+  device: "auto"  # auto, cuda, cpu - auto-detects GPU availability
+  cache_dir: "../models"  # Use top-level models directory: C:/Users/lewka/deep_learning/rag_mcp/models
+  index_dir: "faiss_index"  # Store index at repo level: C:/Users/lewka/deep_learning/rag_mcp/faiss_index
+  output_dir: "./mteb_results"  # Benchmark results output (inside benchmark)
+  log_level: "INFO"  # DEBUG, INFO, WARNING, ERROR
+  low_memory_mode: false  # Enable for systems with limited RAM
+  
+  # Dataset settings
+  dataset:
+    auto_download: true  # Automatically download LIMIT dataset if not found
+    dataset_path: "./limit_dataset"  # Local dataset storage (inside benchmark folder)
+    small_dataset: "limit-small"  # Quick evaluation dataset (~1K queries, 10K docs)
+    full_dataset: "limit"  # Complete evaluation dataset (~50K queries, 250K docs)
+    sample_size: null  # null for full evaluation, or number for sampling
+    
+  # Model management
+  models:
+    auto_download: true  # Automatically download models if not found
+    hf_token_env: "HUGGING_FACE_HUB_TOKEN"  # Environment variable for Hugging Face token
+    
+    # Stage 1: Dense Embedding Model
+    stage1:
+      model: "google/embeddinggemma-300m"
+      description: "Stage 1: Dense embedding model"
+      gated: true
+      top_k: 500
+      batch_size: 32
+      use_fp16: true
+      low_memory_alternative: "sentence-transformers/all-MiniLM-L6-v2"
+      
+    # Stage 2: ColBERT Reranking Model  
+    stage2:
+      model: "lightonai/GTE-ModernColBERT-v1"
+      description: "Stage 2: ColBERT reranking model"
+      gated: false
+      top_k: 100
+      batch_size: 16
+      max_seq_length: 192
+      use_fp16: true
+      low_memory_alternative: "sentence-transformers/all-MiniLM-L6-v2"
+      
+    # Stage 3: Cross-Encoder Reranking Model
+    stage3:
+      model: "cross-encoder/ms-marco-MiniLM-L6-v2"
+      description: "Stage 3: Cross-encoder reranking model"
+      gated: false
+      top_k: 20
+      batch_size: 32
+      max_length: 256
+      use_fp16: true
+      low_memory_alternative: "cross-encoder/ms-marco-MiniLM-L-6-v2"
+
+  # MTEB Evaluation Settings
+  evaluation:
+    tasks:
+  # - "LIMITSmallRetrieval"  # Uses limit-small dataset (~1K queries, 10K docs) - Fast testing
+      - "LIMITRetrieval"       # Uses limit dataset (~50K queries, 250K docs) - Complete evaluation
+    
+    # Evaluation parameters
+    encode_kwargs:
+      batch_size: 356  # Matches stage1 batch_size for consistency
+      show_progress_bar: true
+      
+    # Output settings
+    save_results: true
+    overwrite_results: true
+    save_predictions: true
+    
+  # Performance monitoring
+  performance:
+    enable_timing: true
+    log_memory_usage: true
+    log_gpu_stats: true
+    max_memory_usage_gb: 4.0
+    
+  # Error handling and recovery
+  error_handling:
+    retry_failed_downloads: true
+    max_retries: 3
+    retry_delay_seconds: 5
+    fallback_to_cpu: true  # Fallback to CPU if GPU fails
+    skip_on_error: false  # Skip failed evaluations or stop completely
+    
+  # Low-memory configuration (used when low_memory_mode = true)
+  low_memory_config:
+    stage1_model: "sentence-transformers/all-MiniLM-L6-v2"
+    stage1_batch_size: 16
+    stage1_top_k: 200
+    stage1_use_fp16: false
+    
+    stage2_model: "sentence-transformers/all-MiniLM-L6-v2"
+    stage2_batch_size: 8
+    stage2_top_k: 50
+    stage2_use_fp16: false
+    
+    stage3_model: "cross-encoder/ms-marco-MiniLM-L-6-v2"
+    stage3_batch_size: 16
+    stage3_top_k: 10
+    stage3_use_fp16: false
