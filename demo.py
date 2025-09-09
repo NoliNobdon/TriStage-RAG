@@ -5,9 +5,13 @@ Simple demo of the 3-Stage Retrieval Pipeline
 
 import sys
 import os
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'src'))
 
-from retrieval_pipeline import RetrievalPipeline
+# Ensure repository root is on sys.path so 'src' is treated as a package
+repo_root = os.path.dirname(__file__)
+if repo_root not in sys.path:
+    sys.path.insert(0, repo_root)
+
+from src.retrieval_pipeline import RetrievalPipeline
 
 def demo():
     print("3-Stage Retrieval Pipeline Demo")
