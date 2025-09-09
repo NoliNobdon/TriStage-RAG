@@ -43,7 +43,7 @@ class AppConfig:
     """Application configuration"""
     models_dir: str = "../models"
     data_dir: str = "../data"
-    index_dir: str = "../index"
+    index_dir: str = "../faiss_index"
     max_results: int = 20
     enable_bm25: bool = True
     device: str = "cpu"
@@ -147,10 +147,18 @@ class ThreeStageRetrievalSystem:
         
         # Initialize pipeline stages
         self._initialize_stages()
-        
-        # Index existing documents
-        if self.doc_manager.get_documents():
-            self._index_documents()
+
+        # Load existing index if present; otherwise do nothing until user adds docs
+        try:
+            from pathlib import Path as _Path
+            idx_dir = _Path(self.config.index_dir)
+            idx_file = idx_dir / "stage1_index.pkl"
+            if idx_file.exists():
+                self.stage1.load_index(str(idx_file))
+                self.logger.info("Loaded existing Stage 1 index from disk")
+            # No auto-indexing; user controls ingestion via CLI or web UI
+        except Exception as e:
+            self.logger.warning(f"Index load/init skipped due to error: {e}")
     
     def _initialize_stages(self):
         """Initialize the three pipeline stages"""
@@ -199,24 +207,38 @@ class ThreeStageRetrievalSystem:
             self.logger.error(f"Error initializing pipeline stages: {e}")
             raise
     
-    def _index_documents(self):
-        """Index documents in Stage 1"""
+    def _index_documents(self, new_documents: Optional[List[str]] = None):
+        """Index documents in Stage 1.
+
+        If new_documents is provided, only those are added; otherwise all persisted docs are added.
+        Always saves the index to disk after indexing.
+        """
         try:
-            documents = self.doc_manager.get_documents()
-            if documents:
-                self.stage1.add_documents(documents)
-                self.logger.info(f"Indexed {len(documents)} documents in Stage 1")
+            from pathlib import Path as _Path
+            idx_path = str(_Path(self.config.index_dir) / "stage1_index.pkl")
+            if new_documents is not None:
+                docs = [d for d in new_documents if d and d.strip()]
+            else:
+                docs = self.doc_manager.get_documents()
+            if docs:
+                self.stage1.add_documents(docs)
+                self.stage1.save_index(idx_path)
+                self.logger.info(f"Indexed {len(docs)} documents in Stage 1 and saved index")
         except Exception as e:
             self.logger.error(f"Error indexing documents: {e}")
     
     def add_documents(self, documents: List[str], source: str = "manual") -> int:
         """Add documents to the system"""
+        # Track existing docs to compute newly added
+        before_set = set(self.doc_manager.get_documents())
         new_count = self.doc_manager.add_documents(documents, source)
-        
+
         if new_count > 0:
-            # Re-index documents
-            self._index_documents()
-        
+            # Index only new docs
+            after_docs = self.doc_manager.get_documents()
+            new_docs = [d for d in after_docs if d not in before_set]
+            self._index_documents(new_docs)
+
         return new_count
     
     def search(self, query: str, top_k: int = None) -> Dict[str, Any]:
@@ -338,7 +360,15 @@ class ThreeStageRetrievalSystem:
         """Clear all documents and reset system"""
         self.doc_manager.clear_documents()
         self.search_history.clear()
-        
+        # Remove persisted index files
+        try:
+            from pathlib import Path as _Path
+            idx_dir = _Path(self.config.index_dir)
+            (idx_dir / "stage1_index.pkl").unlink(missing_ok=True)
+            (idx_dir / "stage1_faiss.index").unlink(missing_ok=True)
+        except Exception as e:
+            self.logger.warning(f"Failed to remove index files: {e}")
+
         # Reinitialize stages
         self._initialize_stages()
         
@@ -655,29 +685,68 @@ class CommandLineInterface:
 def main():
     """Main entry point"""
     parser = argparse.ArgumentParser(description="3-Stage Document Retrieval System")
-    parser.add_argument('--models-dir', default='./models', help='Models directory')
-    parser.add_argument('--data-dir', default='./data', help='Data directory')
-    parser.add_argument('--index-dir', default='./index', help='Index directory')
+    # Default to repo-level directories when running from non_mcp folder
+    parser.add_argument('--models-dir', default='../models', help='Models directory')
+    parser.add_argument('--data-dir', default='../data', help='Data directory')
+    parser.add_argument('--index-dir', default='../faiss_index', help='Index directory')
     parser.add_argument('--device', default='cpu', help='Device (cpu/cuda)')
     parser.add_argument('--query', help='Search query (command line mode)')
     parser.add_argument('--top-k', type=int, default=5, help='Number of results')
     parser.add_argument('--load', help='Load documents from file/dir')
+    parser.add_argument('--log-level', default='INFO', help='Logging level (DEBUG, INFO, WARNING, ERROR)')
+    parser.add_argument('--log-file', default='retrieval_pipeline.log', help='Log file path')
+    parser.add_argument('--config', default=None, help='Optional YAML config to load settings')
     
     args = parser.parse_args()
     
-    # Setup logging
+    # Setup logging (file + console)
+    try:
+        level = getattr(logging, args.log_level.upper(), logging.INFO)
+    except Exception:
+        level = logging.INFO
+
     logging.basicConfig(
-        level=logging.INFO,
-        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+        level=level,
+        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+        handlers=[
+            logging.FileHandler(args.log_file),
+            logging.StreamHandler()
+        ]
     )
     
-    # Create configuration
+    # Create configuration (optionally load from YAML)
     config = AppConfig(
         models_dir=args.models_dir,
         data_dir=args.data_dir,
         index_dir=args.index_dir,
-        device=args.device
+        device=args.device,
+        log_level=args.log_level.upper()
     )
+
+    if args.config:
+        try:
+            import yaml
+            from pathlib import Path as _Path
+            cfg_path = _Path(args.config)
+            if cfg_path.exists():
+                with open(cfg_path, 'r', encoding='utf-8') as f:
+                    cfg = yaml.safe_load(f) or {}
+                p = cfg.get('pipeline', {})
+                # Override paths and logging if provided
+                config.models_dir = p.get('cache_dir', config.models_dir)
+                # Prefer repo-level faiss index naming if present
+                config.index_dir = p.get('index_dir', config.index_dir)
+                config.device = p.get('device', config.device)
+                config.log_level = p.get('log_level', config.log_level)
+                # If log file from config is provided and different, add a file handler
+                log_file = p.get('log_file')
+                if log_file:
+                    # Add an extra file handler without duplicating console handler
+                    root_logger = logging.getLogger()
+                    root_logger.addHandler(logging.FileHandler(log_file))
+                logging.info(f"Loaded settings from {cfg_path}")
+        except Exception as e:
+            logging.warning(f"Failed to load config {args.config}: {e}")
     
     # Initialize system
     try:

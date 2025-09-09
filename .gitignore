@@ -93,3 +93,4 @@ benchmark/limit_dataset
 benchmark/mteb_results
 data
 documents
+faiss_index

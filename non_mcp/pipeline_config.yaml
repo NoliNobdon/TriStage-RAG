@@ -5,7 +5,7 @@ pipeline:
   device: "cpu"  # cuda, cpu, auto
   cache_dir: "../models"
   index_dir: "../faiss_index"
-  log_level: "INFO"
+  log_level: "DEBUG"
   log_file: "retrieval_pipeline.log"
   enable_timing: true
   save_intermediate_results: false

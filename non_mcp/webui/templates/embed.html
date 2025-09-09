@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Embed Settings • TriStage</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
+  <style>
+    :root { --bg:#0b0c0f; --panel:#14161a; --text:#e6e7eb; --muted:#9aa0a6; }
+    body { background: var(--bg); color: var(--text); max-width:1100px; margin: 0 auto; padding: 1rem; }
+    .grid { display:grid; grid-template-columns: 1fr 1fr; gap:1rem; }
+    .card { background: var(--panel); padding:1rem; border-radius:.6rem; border:1px solid #222; }
+    table { width:100%; font-size:.95rem; }
+    td, th { padding:.45rem .5rem; border-bottom:1px solid #222; vertical-align: top; }
+    .muted { color: var(--muted); }
+    .monospace { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace; font-size:.9rem; }
+  </style>
+</head>
+<body>
+  <header style="display:flex; align-items:center; justify-content:space-between;">
+    <h2 style="margin:0;">Embed Settings</h2>
+    <nav><a href="/chat" role="button">Back to Chat</a></nav>
+  </header>
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      {% for category, message in messages %}
+        <article class="{{ 'contrast' if category == 'danger' else '' }}">
+          <strong>{{ category|title }}:</strong> {{ message }}
+        </article>
+      {% endfor %}
+    {% endif %}
+  {% endwith %}
+
+  <div class="grid">
+    <section class="card">
+      <h3>Upload and embed</h3>
+      <form method="POST" action="/embed/run" enctype="multipart/form-data">
+        <input type="hidden" name="action" value="upload" />
+        <label>Chunk size <input type="number" name="chunk_size" value="1000" min="200" max="4000" /></label>
+        <label>Overlap <input type="number" name="overlap" value="200" min="0" max="1000" /></label>
+        <input type="file" name="file" accept=".txt,.json,.md,.markdown,.pdf,.docx" multiple />
+        <button type="submit">Embed uploads</button>
+      </form>
+      <p class="muted">Supported: .txt, .json, .md/.markdown, .pdf, .docx</p>
+    </section>
+
+    <section class="card">
+      <h3>Repository documents</h3>
+      <form method="POST" action="/embed/run">
+        <input type="hidden" name="action" value="repo_all" />
+        <label>Chunk size <input type="number" name="chunk_size" value="1000" min="200" max="4000" /></label>
+        <label>Overlap <input type="number" name="overlap" value="200" min="0" max="1000" /></label>
+        <button type="submit">Embed all not-yet-embedded files in documents/</button>
+      </form>
+      <details style="margin-top:.5rem;">
+        <summary>documents/ status</summary>
+        <table>
+          <thead><tr><th>Path</th><th>Embedded</th><th>Size</th><th>Action</th></tr></thead>
+          <tbody>
+            {% for s in statuses %}
+              <tr>
+                <td class="monospace">{{ s.path }}</td>
+                <td>{{ 'Yes' if s.embedded else 'No' }}</td>
+                <td>{{ s.size_bytes }} bytes</td>
+                <td>
+                  {% if not s.embedded %}
+                  <form method="POST" action="/embed/run" style="display:inline;">
+                    <input type="hidden" name="action" value="repo_file" />
+                    <input type="hidden" name="path" value="{{ s.path }}" />
+                    <button type="submit">Embed</button>
+                  </form>
+                  {% else %}
+                    <span class="muted">—</span>
+                  {% endif %}
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </details>
+    </section>
+  </div>
+
+  <section class="card" style="margin-top:1rem;">
+    <h3>Embedded manifest</h3>
+    <p class="muted">Tracked entries: {{ manifest.files | length }}</p>
+    <details>
+      <summary>View manifest JSON</summary>
+      <pre class="monospace">{{ manifest | tojson(indent=2) }}</pre>
+    </details>
+  </section>
+</body>
+</html>

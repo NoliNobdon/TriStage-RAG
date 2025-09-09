@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TriStage Retrieval (Non-MCP)</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
+  <style>
+    body { max-width: 960px; margin: 2rem auto; }
+    pre { white-space: pre-wrap; word-break: break-word; }
+    .score { font-variant-numeric: tabular-nums; }
+  </style>
+</head>
+<body>
+  <main>
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category, message in messages %}
+          <article class="{{ 'contrast' if category == 'danger' else '' }}">
+            <strong>{{ category|title }}:</strong> {{ message }}
+          </article>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+    <hgroup>
+      <h1>TriStage Retrieval (Non-MCP)</h1>
+      <p>Search and manage documents via a simple web UI.</p>
+    </hgroup>
+
+    <section>
+      <h3>Search</h3>
+      <form method="POST" action="/search">
+        <div class="grid">
+          <input type="text" name="q" placeholder="Enter your query" value="{{ query or '' }}" required />
+          <input type="number" name="top_k" placeholder="Top K" value="{{ top_k or 10 }}" min="1" max="100" />
+          <button type="submit">Search</button>
+        </div>
+      </form>
+
+      {% if error %}
+        <article class="contrast">
+          <strong>Error:</strong> {{ error }}
+        </article>
+      {% endif %}
+
+      {% if result %}
+        <article>
+          <header>
+            <strong>Query:</strong> {{ result.query }}
+          </header>
+          <p>Results: {{ result.final_count }} (candidates: {{ result.candidate_count }}), total time: {{ '%.3f'|format(result.total_time) }}s</p>
+          <details>
+            <summary>Stage timings</summary>
+            <ul>
+              <li>Stage 1: {{ '%.3f'|format(result.stage1_time) }}s</li>
+              <li>Stage 2: {{ '%.3f'|format(result.stage2_time) }}s</li>
+              <li>Stage 3: {{ '%.3f'|format(result.stage3_time) }}s</li>
+            </ul>
+          </details>
+          <h4>Top results</h4>
+          <ol>
+            {% for item in result.results %}
+            <li>
+              <details>
+                <summary>
+                  <span class="score">score={{ '%.4f'|format(item.final_score or 0) }}</span>
+                  {% if item.stage1_score is defined %}
+                  <small class="score">(s1={{ '%.4f'|format(item.stage1_score or 0) }}, s2={{ '%.4f'|format(item.stage2_score or 0) }}, s3={{ '%.4f'|format(item.stage3_score or 0) }})</small>
+                  {% endif %}
+                </summary>
+                <pre>{{ item.document }}</pre>
+              </details>
+            </li>
+            {% endfor %}
+          </ol>
+        </article>
+      {% endif %}
+    </section>
+
+    <section>
+      <h3>Add documents</h3>
+      <form method="POST" action="/add" enctype="multipart/form-data">
+        <label>Paste documents (one per line)</label>
+        <textarea name="docs" rows="6" placeholder="Doc 1\nDoc 2\n..."></textarea>
+        <label>Or upload a file (JSON list or plain text)</label>
+        <input type="file" name="file" accept=".txt,.json" />
+        <button type="submit">Add</button>
+      </form>
+    </section>
+
+    <section>
+      <h3>API</h3>
+      <ul>
+        <li>GET <code>/api/search?q=your+query&top_k=10</code></li>
+        <li>GET <code>/api/stats</code></li>
+      </ul>
+    </section>
+  </main>
+</body>
+</html>

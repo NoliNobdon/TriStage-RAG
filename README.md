@@ -70,11 +70,6 @@ Our architecture addresses these limitations:
 
 ```
 rag_mcp/
-├── src/                        # Core implementation
-│   ├── embedding_service.py    # Single-model embedding service  
-│   ├── mcp_retrieval_server.py # MCP server with 7 tools
-│   ├── retrieval_pipeline.py  # 3-stage pipeline orchestrator
-│   ├── stage1_retriever.py     # Stage 1: FAISS + BM25
 │   ├── stage2_rescorer.py      # Stage 2: ColBERT MaxSim
 │   ├── stage3_reranker.py      # Stage 3: Cross-encoder
 │   └── __init__.py            # Package initialization
@@ -99,7 +94,7 @@ rag_mcp/
 └── README.md                 # This file
 ```
 
-## 🚀 System Components
+python run_mcp_server_config.py
 
 ### Stage 1: Fast Candidate Generation
 - **Model**: `google/embeddinggemma-300m`
@@ -107,7 +102,7 @@ rag_mcp/
 - **Output**: ~500-800 candidates
 - **Features**: Reciprocal rank fusion, configurable top-k
 
-### Stage 2: Multi-Vector Rescoring  
+  device: "auto"  # cuda, cpu, auto
 - **Model**: `lightonai/GTE-ModernColBERT-v1`
 - **Technology**: ColBERT-style MaxSim scoring
 - **Optimization**: 192 token sequences for 4GB VRAM
