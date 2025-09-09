@@ -88,4 +88,6 @@ plan.md
 tests
 scripts
 AGENTS.md
-benchmark
+benchmark/__pycache__
+benchmark/limit_dataset
+benchmark/models

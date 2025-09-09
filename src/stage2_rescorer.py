@@ -227,7 +227,12 @@ class ColBERTScorer:
             
             # Clear GPU memory if needed
             if self.device == "cuda" and i % (self.config.batch_size * 2) == 0:
-                torch.cuda.empty_cache()
+                try:
+                    if torch.cuda.is_available():
+                        torch.cuda.empty_cache()
+                except AttributeError:
+                    # torch.cuda not available
+                    pass
         
         return all_embeddings
     
@@ -325,11 +330,18 @@ class ColBERTScorer:
     def clear_gpu_memory(self):
         """Clear GPU memory if using CUDA"""
         if self.device == "cuda":
-            torch.cuda.empty_cache()
+            try:
+                import torch
+                if torch.cuda.is_available():
+                    torch.cuda.empty_cache()
+            except (ImportError, AttributeError):
+                # torch or torch.cuda not available during cleanup
+                pass
     
     def __del__(self):
         """Cleanup when object is destroyed"""
         try:
             self.clear_gpu_memory()
         except:
+            # Silently ignore cleanup errors during object destruction
             pass
