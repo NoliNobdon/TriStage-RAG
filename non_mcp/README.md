@@ -73,6 +73,14 @@ python non_mcp\main.py --load non_mcp\test_docs.json --query "attention mechanis
 python non_mcp\main.py --config non_mcp\pipeline_config.yaml --log-level DEBUG
 ```
 
+Tiny helper: return only the top Stage-3 passage (no UI/CLI loop):
+
+```cmd
+python non_mcp\respond_stage3.py "your question"
+:: optionally ingest a folder of .txt/.md files (Stage 1 index will be saved for reuse)
+python non_mcp\respond_stage3.py "your question" documents
+```
+
 CLI options include:
 - `--models-dir` (default: `../models`)
 - `--data-dir` (default: `../data`)

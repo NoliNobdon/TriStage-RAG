@@ -309,18 +309,19 @@ def create_app() -> Flask:
             return redirect(url_for('chat_home'))
         try:
             result = system.search(q, top_k=top_k)
-            # Use top documents as context for generation
-            contexts = []
-            for item in (result.get('results') or [])[: min(5, top_k)]:
-                doc = item.get('document', '')
-                if doc:
-                    contexts.append(doc)
-            # Compose answer from snippets only (no LLM)
-            if contexts:
-                lines = []
-                for i, c in enumerate(contexts[:3], start=1):
-                    lines.append(f"{i}. {c[:500]}")
-                answer = "\n\n".join(lines)
+            # Compose answer from the final stage top-1 passage (no LLM)
+            final = (result or {}).get('results') or []
+            if final:
+                best = final[0]
+                passage = (best.get('document') or '').strip()
+                # Prefer stage3_score; fallback to stage2/1
+                score = best.get('stage3_score')
+                if score is None:
+                    score = best.get('stage2_score')
+                if score is None:
+                    score = best.get('score')
+                footer = f"\n\n[stage3_score: {score}]" if score is not None else ''
+                answer = passage[:4000] + footer
             else:
                 answer = "No results."
             history = session.get('chat_history', [])
