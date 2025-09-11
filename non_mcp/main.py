@@ -46,7 +46,7 @@ class AppConfig:
     index_dir: str = "../faiss_index"
     max_results: int = 20
     enable_bm25: bool = True
-    device: str = "cpu"
+    device: str = "auto"
     log_level: str = "INFO"
 
 
@@ -695,7 +695,10 @@ def main():
     parser.add_argument('--models-dir', default='../models', help='Models directory')
     parser.add_argument('--data-dir', default='../data', help='Data directory')
     parser.add_argument('--index-dir', default='../faiss_index', help='Index directory')
-    parser.add_argument('--device', default='cpu', help='Device (cpu/cuda)')
+    parser.add_argument('--device', default='auto', help='Device (auto/cpu/cuda)')
+    parser.add_argument('--webui', action='store_true', help='Launch the Flask Web UI')
+    parser.add_argument('--webui-host', default='127.0.0.1', help='Web UI host (default 127.0.0.1)')
+    parser.add_argument('--webui-port', type=int, default=5051, help='Web UI port (default 5051)')
     parser.add_argument('--query', help='Search query (command line mode)')
     parser.add_argument('--top-k', type=int, default=5, help='Number of results')
     parser.add_argument('--load', help='Load documents from file/dir')
@@ -754,6 +757,27 @@ def main():
         except Exception as e:
             logging.warning(f"Failed to load config {args.config}: {e}")
     
+    # If asked to run the Web UI, delegate to the Flask app to avoid import cycles
+    if args.webui:
+        import os as _os, sys as _sys, subprocess as _sp
+        # Pass device via env so webui/app.py picks it up
+        env = _os.environ.copy()
+        env['NON_MCP_DEVICE'] = config.device
+        env['NON_MCP_WEBUI_LOG_LEVEL'] = config.log_level
+        # Launch the web UI as a child process using the same interpreter
+        webui_path = str(Path(__file__).parent / 'webui' / 'app.py')
+        cmd = [_sys.executable, webui_path]
+        try:
+            print(f"Starting Web UI at http://{args.webui_host}:{args.webui_port} ...")
+            # Allow host/port override via env for app.py
+            env['NON_MCP_WEBUI_HOST'] = args.webui_host
+            env['NON_MCP_WEBUI_PORT'] = str(args.webui_port)
+            _sp.run(cmd, env=env, check=True)
+        except _sp.CalledProcessError as e:
+            print(f"Failed to start Web UI: {e}")
+            sys.exit(e.returncode if hasattr(e, 'returncode') else 1)
+        return
+
     # Initialize system
     try:
         system = ThreeStageRetrievalSystem(config)

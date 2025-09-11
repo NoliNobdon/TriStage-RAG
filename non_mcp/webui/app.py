@@ -59,7 +59,7 @@ def create_app() -> Flask:
         models_dir=str(PROJECT_ROOT / "models"),
         data_dir=str(PROJECT_ROOT / "data"),
         index_dir=str(PROJECT_ROOT / "faiss_index"),
-        device=os.environ.get("NON_MCP_DEVICE", "cpu"),
+        device=os.environ.get("NON_MCP_DEVICE", "auto"),
         log_level=os.environ.get("NON_MCP_LOG_LEVEL", "INFO"),
     )
 

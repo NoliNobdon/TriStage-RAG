@@ -156,7 +156,7 @@ class Stage1Retriever:
                     cache_folder=self.config.cache_dir
                 )
             except Exception as e:
-                # Handle low memory / Windows paging file issues by falling back to a smaller model
+                # Handle low memory / Windows paging file / CUDA OOM issues with graceful fallback
                 err_msg = str(e).lower()
                 low_mem_signatures = [
                     "paging file is too small",
@@ -165,21 +165,51 @@ class Stage1Retriever:
                     "os error 1455"
                 ]
                 if any(sig in err_msg for sig in low_mem_signatures):
-                    fallback_model = "sentence-transformers/all-MiniLM-L6-v2"
-                    self.logger.warning(
-                        f"Low-memory issue while loading '{self.config.model_name}': {e}. "
-                        f"Falling back to lightweight model '{fallback_model}'."
-                    )
-                    self.config.model_name = fallback_model
-                    base_dir = os.path.join(self.config.cache_dir, os.path.basename(self.config.model_name))
-                    legacy_dir = os.path.join(self.config.cache_dir, self.config.model_name)
-                    local_model_dir = base_dir if os.path.isdir(base_dir) else (legacy_dir if os.path.isdir(legacy_dir) else None)
-                    model_source = local_model_dir or self.config.model_name
-                    self.model = SentenceTransformer(
-                        model_source,
-                        device=device,
-                        cache_folder=self.config.cache_dir
-                    )
+                    # If we were trying CUDA, first fall back to CPU with the same model
+                    if device == "cuda":
+                        self.logger.warning(
+                            f"CUDA memory issue while loading '{self.config.model_name}': {e}. Falling back to CPU."
+                        )
+                        device = "cpu"
+                        try:
+                            self.model = SentenceTransformer(
+                                model_source,
+                                device=device,
+                                cache_folder=self.config.cache_dir
+                            )
+                        except Exception as e2:
+                            # If CPU also fails or model too large, fall back to a smaller model on CPU
+                            self.logger.warning(
+                                f"Failed to load original model on CPU as well: {e2}. "
+                                f"Falling back to lightweight model 'sentence-transformers/all-MiniLM-L6-v2'."
+                            )
+                            self.config.model_name = "sentence-transformers/all-MiniLM-L6-v2"
+                            base_dir = os.path.join(self.config.cache_dir, os.path.basename(self.config.model_name))
+                            legacy_dir = os.path.join(self.config.cache_dir, self.config.model_name)
+                            local_model_dir = base_dir if os.path.isdir(base_dir) else (legacy_dir if os.path.isdir(legacy_dir) else None)
+                            model_source = local_model_dir or self.config.model_name
+                            self.model = SentenceTransformer(
+                                model_source,
+                                device=device,
+                                cache_folder=self.config.cache_dir
+                            )
+                    else:
+                        # Not on CUDA; fall back to a smaller model on current device
+                        fallback_model = "sentence-transformers/all-MiniLM-L6-v2"
+                        self.logger.warning(
+                            f"Low-memory issue while loading '{self.config.model_name}': {e}. "
+                            f"Falling back to lightweight model '{fallback_model}'."
+                        )
+                        self.config.model_name = fallback_model
+                        base_dir = os.path.join(self.config.cache_dir, os.path.basename(self.config.model_name))
+                        legacy_dir = os.path.join(self.config.cache_dir, self.config.model_name)
+                        local_model_dir = base_dir if os.path.isdir(base_dir) else (legacy_dir if os.path.isdir(legacy_dir) else None)
+                        model_source = local_model_dir or self.config.model_name
+                        self.model = SentenceTransformer(
+                            model_source,
+                            device=device,
+                            cache_folder=self.config.cache_dir
+                        )
                 else:
                     raise
             
