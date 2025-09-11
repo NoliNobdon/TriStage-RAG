@@ -48,23 +48,14 @@ pip install git+https://github.com/embeddings-benchmark/mteb@v2.0.0
 
 If you have an NVIDIA GPU and want to run on CUDA:
 
-1) Install PyTorch with CUDA wheels (pick the CUDA version matching your driver/toolkit)
+1) Install PyTorch with CUDA wheels (match your CUDA/driver version)
 
-
-MTEB v2 may return results to the caller as a list or a dict. The `run_mteb_evaluation.py` script prints a short summary either way and the full results are always written to the folder above.
 ```cmd
 # Example for CUDA 12.1 wheels (adjust as needed)
 pip uninstall -y torch torchvision torchaudio
 pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121
 ```
 
-
-### pytrec_eval: "Expected dictionary as value"
-- Ensure you’re using the provided `benchmark/limit_mteb_tasks.py` (it returns `relevant_docs` as a dict-of-dicts per MTEB v2) and you run `run_mteb_evaluation.py` from this repository.
-- If you previously modified tasks or are mixing MTEB versions, reinstall requirements and retry.
-
-### “No documents indexed. Call add_documents() first.”
-- This should not occur with the provided wrapper; it proactively indexes corpora for retrieval and pairs mode. If you see this, ensure your LIMIT dataset paths are correct and documents are non-empty.
 2) Verify CUDA is detected
 
 ```cmd
@@ -79,7 +70,7 @@ python benchmark\run_mteb_evaluation.py --tasks LIMITSmallRetrieval --limit-path
 
 Notes
 - Stage 2 and Stage 3 default to fp16 when GPU is available.
-- If you see CUDA OOM, try lowering batch sizes in `config/config.yaml` or use `--sample-size`.
+- If you see CUDA OOM, try lowering batch sizes in `benchmark/config.yaml` or use `--sample-size`.
 - For laptops with hybrid GPUs, ensure the Python process uses the discrete GPU.
 
 ### Dataset Setup
@@ -160,6 +151,8 @@ Run on CUDA (if available):
 ```cmd
 python benchmark\run_mteb_evaluation.py --tasks LIMITSmallRetrieval --limit-path benchmark\limit_dataset\limit-small --device cuda
 ```
+
+Results format: MTEB v2 may return results as a list or a dict. The `run_mteb_evaluation.py` script prints a short summary either way and writes full results to the output folder.
 
 #### Full LIMIT Dataset (Complete Evaluation)
 ```cmd
@@ -279,6 +272,14 @@ Implementation notes for LIMIT tasks:
    This avoids pytrec_eval format errors like “Expected dictionary as value”.
 
 ## Troubleshooting
+
+### pytrec_eval: "Expected dictionary as value"
+- Ensure you’re using the provided `benchmark/limit_mteb_tasks.py` (it returns `relevant_docs` as a dict-of-dicts per MTEB v2) and you run `run_mteb_evaluation.py` from this repository.
+- If you previously modified tasks or are mixing MTEB versions, reinstall requirements and retry.
+
+### “No documents indexed. Call add_documents() first.”
+- This should not occur with the provided wrapper; it proactively indexes corpora for retrieval and pairs mode.
+- If you see this, ensure your LIMIT dataset paths are correct and documents are non-empty.
 
 ### Memory Issues (Windows)
 If you encounter paging file / out-of-memory errors:

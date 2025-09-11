@@ -1,100 +1,78 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>TriStage Retrieval (Non-MCP)</title>
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
-  <style>
-    body { max-width: 960px; margin: 2rem auto; }
-    pre { white-space: pre-wrap; word-break: break-word; }
-    .score { font-variant-numeric: tabular-nums; }
-  </style>
-</head>
-<body>
-  <main>
-    {% with messages = get_flashed_messages(with_categories=true) %}
-      {% if messages %}
-        {% for category, message in messages %}
-          <article class="{{ 'contrast' if category == 'danger' else '' }}">
-            <strong>{{ category|title }}:</strong> {{ message }}
-          </article>
-        {% endfor %}
-      {% endif %}
-    {% endwith %}
-    <hgroup>
-      <h1>TriStage Retrieval (Non-MCP)</h1>
-      <p>Search and manage documents via a simple web UI.</p>
-    </hgroup>
-
-    <section>
-      <h3>Search</h3>
-      <form method="POST" action="/search">
-        <div class="grid">
-          <input type="text" name="q" placeholder="Enter your query" value="{{ query or '' }}" required />
-          <input type="number" name="top_k" placeholder="Top K" value="{{ top_k or 10 }}" min="1" max="100" />
-          <button type="submit">Search</button>
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>TriStage Search • Non‑MCP</title>
+    <link rel="stylesheet" href="/static/style.css">
+  </head>
+  <body>
+    <header>
+      <div class="wrap row">
+        <div class="nav">
+          <div class="brand">TriStage RAG</div>
+          <a href="/chat" class="pill">Chat</a>
+          <a href="/search" class="pill">Search</a>
+          <a href="/embed" class="pill">Embed</a>
         </div>
-      </form>
-
-      {% if error %}
-        <article class="contrast">
-          <strong>Error:</strong> {{ error }}
-        </article>
-      {% endif %}
+        {% if stats %}
+        <div class="nav">
+          <span class="pill">Device: {{ stats.config.device }}</span>
+          <span class="pill">Docs: {{ stats.document_stats.total_documents }}</span>
+          <span class="pill">Searches: {{ stats.search_count }}</span>
+        </div>
+        {% endif %}
+      </div>
+    </header>
+    <main class="wrap grid">
+      <section class="panel">
+        <form action="/search" method="post" class="grid">
+          <label for="q">Search</label>
+          <input type="text" name="q" id="q" value="{{ query or '' }}" placeholder="Type a search query…" required>
+          <div class="row">
+            <div class="flex">
+              <label class="muted">Top‑k</label>
+              <select name="top_k">
+                {% for k in [3,5,10,20] %}
+                <option value="{{k}}" {% if (top_k or 10)==k %}selected{% endif %}>{{k}}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="right">
+              <button class="btn" type="submit">Search</button>
+            </div>
+          </div>
+        </form>
+      </section>
 
       {% if result %}
-        <article>
-          <header>
-            <strong>Query:</strong> {{ result.query }}
-          </header>
-          <p>Results: {{ result.final_count }} (candidates: {{ result.candidate_count }}), total time: {{ '%.3f'|format(result.total_time) }}s</p>
-          <details>
-            <summary>Stage timings</summary>
-            <ul>
-              <li>Stage 1: {{ '%.3f'|format(result.stage1_time) }}s</li>
-              <li>Stage 2: {{ '%.3f'|format(result.stage2_time) }}s</li>
-              <li>Stage 3: {{ '%.3f'|format(result.stage3_time) }}s</li>
-            </ul>
-          </details>
-          <h4>Top results</h4>
-          <ol>
-            {% for item in result.results %}
-            <li>
-              <details>
-                <summary>
-                  <span class="score">score={{ '%.4f'|format(item.final_score or 0) }}</span>
-                  {% if item.stage1_score is defined %}
-                  <small class="score">(s1={{ '%.4f'|format(item.stage1_score or 0) }}, s2={{ '%.4f'|format(item.stage2_score or 0) }}, s3={{ '%.4f'|format(item.stage3_score or 0) }})</small>
-                  {% endif %}
-                </summary>
-                <pre>{{ item.document }}</pre>
-              </details>
-            </li>
-            {% endfor %}
-          </ol>
-        </article>
+      <section class="panel">
+        <div class="row mb8">
+          <div class="muted">Query: <strong>{{ result.query }}</strong></div>
+          <div class="scores">
+            <span class="chip">S1 {{ '%.3f'|format(result.stage1_time) }}s</span>
+            <span class="chip">S2 {{ '%.3f'|format(result.stage2_time) }}s</span>
+            <span class="chip">S3 {{ '%.3f'|format(result.stage3_time) }}s</span>
+          </div>
+        </div>
+        <div class="list">
+          {% for item in result.results %}
+          <div class="item">
+            <h4>#{{ item.rank }} • <span class="chip final">final {{ '%.4f'|format(item.final_score or 0) }}</span></h4>
+            <div class="scores mb8">
+              <span class="chip s1">s1 {{ '%.4f'|format(item.stage1_score or 0) }}</span>
+              <span class="chip s2">s2 {{ '%.4f'|format(item.stage2_score or 0) }}</span>
+              <span class="chip s3">s3 {{ '%.4f'|format(item.stage3_score or 0) }}</span>
+            </div>
+            <div>{{ (item.document or '')|hl(query or result.query)|safe }}</div>
+          </div>
+          {% endfor %}
+        </div>
+      </section>
       {% endif %}
-    </section>
 
-    <section>
-      <h3>Add documents</h3>
-      <form method="POST" action="/add" enctype="multipart/form-data">
-        <label>Paste documents (one per line)</label>
-        <textarea name="docs" rows="6" placeholder="Doc 1\nDoc 2\n..."></textarea>
-        <label>Or upload a file (JSON list or plain text)</label>
-        <input type="file" name="file" accept=".txt,.json" />
-        <button type="submit">Add</button>
-      </form>
-    </section>
+      <div class="footer">Final ranking uses Stage‑3 (cross‑encoder). Query terms are highlighted.</div>
+    </main>
+  </body>
+  </html>
 
-    <section>
-      <h3>API</h3>
-      <ul>
-        <li>GET <code>/api/search?q=your+query&top_k=10</code></li>
-        <li>GET <code>/api/stats</code></li>
-      </ul>
-    </section>
-  </main>
-</body>
-</html>

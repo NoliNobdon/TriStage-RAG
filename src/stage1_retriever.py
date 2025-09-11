@@ -376,7 +376,10 @@ class Stage1Retriever:
                 result = {
                     "doc_id": doc_idx,
                     "document": self.documents[doc_idx],
+                    # Keep legacy 'score' (stage 1 score) for compatibility
                     "score": score,
+                    # Also expose explicit Stage 1 score for downstream clarity
+                    "stage1_score": score,
                     "metadata": self.doc_metadata[doc_idx],
                     "stage": "stage1"
                 }

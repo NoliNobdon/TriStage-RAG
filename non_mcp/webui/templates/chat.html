@@ -1,144 +1,70 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>TriStage Chat (Non-MCP)</title>
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
-  <style>
-    :root { --bg:#0b0c0f; --panel:#14161a; --bubble:#1f2229; --bubble-user:#155e75; --text:#e6e7eb; --muted:#9aa0a6; }
-    html, body { height: 100%; }
-    body { margin: 0; background: var(--bg); color: var(--text); }
-    .app { display:flex; flex-direction:column; height:100vh; }
-    .header { padding: .75rem 1rem; border-bottom: 1px solid #222; background: var(--panel); position: sticky; top: 0; z-index: 1; }
-    .brand { display:flex; align-items:center; gap:.5rem; }
-    .brand h1 { font-size:1.1rem; margin:0; }
-    .brand small { color: var(--muted); }
-    .content { flex:1; overflow:auto; padding: 1rem; }
-    .messages { max-width: 900px; margin: 0 auto; display:flex; flex-direction:column; gap:.75rem; }
-    .msg { display:flex; gap:.6rem; }
-    .msg .avatar { flex:0 0 36px; height:36px; width:36px; border-radius:50%; display:flex; align-items:center; justify-content:center; background:#2a2f3a; font-size:.9rem; }
-    .msg.user { justify-content:flex-end; }
-    .msg.user .bubble { background: var(--bubble-user); border:1px solid #0e7490; }
-    .msg.assistant { justify-content:flex-start; }
-    .bubble { max-width: 75%; background: var(--bubble); border:1px solid #2b3038; padding:.75rem .9rem; border-radius: .8rem; white-space: pre-wrap; word-break: break-word; }
-    .bubble .role { display:none; }
-    .composer { border-top:1px solid #222; background: var(--panel); padding:.75rem 1rem; }
-    .composer .row { max-width:900px; margin:0 auto; display:flex; gap:.5rem; align-items:flex-end; }
-    .composer textarea { flex:1; resize:none; min-height:48px; max-height:180px; background:#0f1216; color:var(--text); border:1px solid #2b3038; border-radius:.6rem; padding:.6rem .7rem; }
-    .composer .actions { display:flex; gap:.5rem; align-items:center; }
-    .hint { text-align:center; color: var(--muted); font-size:.85rem; margin:.6rem 0 0; }
-    .topbar { display:flex; gap:.5rem; align-items:center; justify-content:space-between; }
-    .topbar .right { display:flex; gap:.5rem; align-items:center; }
-    details.stats { max-width:900px; margin: .5rem auto; }
-    .upload { display:flex; gap:.5rem; align-items:center; }
-    button.primary { background:#2563eb; border-color:#1d4ed8; }
-  </style>
-</head>
-<body>
-  <div class="app">
-    <div class="header">
-      <div class="topbar">
-        <div class="brand">
-          <strong>TriStage Chat</strong>
-          <small>Non‑MCP</small>
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>TriStage Chat • Non‑MCP</title>
+    <link rel="stylesheet" href="/static/style.css">
+  </head>
+  <body>
+    <header>
+      <div class="wrap row">
+        <div class="nav">
+          <div class="brand">TriStage RAG</div>
+          <a href="/chat" class="pill">Chat</a>
+          <a href="/search" class="pill" onclick="event.preventDefault();document.getElementById('searchPane').scrollIntoView({behavior:'smooth'})">Search</a>
+          <a href="/embed" class="pill">Embed</a>
         </div>
-        <div class="right">
-          <a href="/embed" role="button" class="secondary">Embed</a>
-          <form method="POST" action="/api/clear" onsubmit="return confirm('Clear chat history and index?')">
-            <button type="submit" class="secondary">Clear</button>
-          </form>
+        <div class="nav">
+          <span class="pill">Device: {{ stats.config.device }}</span>
+          <span class="pill">Docs: {{ stats.document_stats.total_documents }}</span>
+          <span class="pill">Searches: {{ stats.search_count }}</span>
         </div>
       </div>
-    </div>
-
-    {% with messages = get_flashed_messages(with_categories=true) %}
-      {% if messages %}
-        <div style="max-width:900px;margin:.5rem auto 0;">
-          {% for category, message in messages %}
-            <article class="{{ 'contrast' if category == 'danger' else '' }}">
-              <strong>{{ category|title }}:</strong> {{ message }}
-            </article>
-          {% endfor %}
-        </div>
-      {% endif %}
-    {% endwith %}
-
-    <details class="stats">
-      <summary>System stats</summary>
-      <pre>{{ stats | tojson(indent=2) }}</pre>
-    </details>
-
-    <div class="content" id="chat-content">
-      <div class="messages" id="messages">
-        {% if not history or history|length == 0 %}
-          <div class="msg assistant">
-            <div class="avatar">🤖</div>
-            <div class="bubble">Hi! Upload files below and ask questions. I’ll answer using your documents.</div>
-          </div>
-        {% endif %}
-        {% for m in history %}
-          <div class="msg {{ m.role }}">
-            {% if m.role == 'assistant' %}
-              <div class="avatar">🤖</div>
-            {% else %}
-              <div class="avatar">🧑</div>
-            {% endif %}
-            <div class="bubble">
-              <div class="role">{{ m.role.title() }}</div>
-              {{ m.content }}
+    </header>
+    <main class="wrap grid">
+      <section class="panel">
+        <form action="/chat/send" method="post" class="grid">
+          <label for="message">Ask a question</label>
+          <textarea name="message" id="message" placeholder="Message TriStage… (Ctrl/Cmd+Enter to send)" required onkeydown="return onKeyDown(event)"></textarea>
+          <div class="row">
+            <div class="flex">
+              <label for="top_k" class="muted">Top‑k</label>
+              <select name="top_k" id="top_k">
+                {% for k in [3,5,10,20] %}
+                <option value="{{k}}" {% if k==5 %}selected{% endif %}>{{k}}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="right">
+              <button class="btn" type="submit">Send</button>
             </div>
           </div>
-        {% endfor %}
-      </div>
-    </div>
-
-    <div class="composer">
-      <div class="row">
-        <form method="POST" action="/add" enctype="multipart/form-data" class="upload">
-          <input type="file" name="file" accept=".txt,.json,.md,.markdown,.pdf,.docx" multiple />
-          <button type="submit" class="secondary">Embed</button>
         </form>
-      </div>
-      <div class="row" style="margin-top:.5rem;">
-        <form method="POST" action="/chat/send" id="chat-form" style="display:flex; gap:.5rem; width:100%;">
-          <textarea name="message" id="message" placeholder="Message TriStage…" required onkeydown="return onKeyDown(event)"></textarea>
-          <input type="hidden" name="top_k" value="5" />
-          <div class="actions">
-            <button type="submit" id="send" class="primary">Send</button>
+      </section>
+      <section class="panel">
+        <div class="mb8 muted">Conversation</div>
+        <div class="list">
+          {% for m in history %}
+          <div class="item">
+            <div class="muted">{{ m.role.title() }}</div>
+            <div>{{ m.content|safe }}</div>
           </div>
-        </form>
-      </div>
-      <p class="hint">Shift + Enter for a new line • Documents: .txt, .json, .md, .pdf, .docx</p>
-    </div>
-  </div>
-
-  <script>
-    // Auto-scroll to bottom
-    const messages = document.getElementById('messages');
-    if (messages) {
-      messages.scrollTop = messages.scrollHeight;
-    }
-    // Enter to send, Shift+Enter for newline
-    function onKeyDown(e) {
-      if (e.key === 'Enter' && !e.shiftKey) {
-        e.preventDefault();
-        document.getElementById('send').click();
-        return false;
+          {% endfor %}
+        </div>
+      </section>
+      <section id="searchPane"></section>
+      <div class="footer">Tip: Use Ctrl/Cmd+Enter to send. Stage‑3 score is shown in the answer footer.</div>
+    </main>
+    <script>
+      function onKeyDown(e){
+        if(e.key==='Enter' && (e.ctrlKey||e.metaKey)){
+          e.target.form.submit();
+          return false;
+        }
+        return true;
       }
-      return true;
-    }
-    // Keep textarea height comfy
-    const ta = document.getElementById('message');
-    if (ta) {
-      const autoResize = () => {
-        ta.style.height = 'auto';
-        ta.style.height = Math.min(ta.scrollHeight, 180) + 'px';
-      };
-      ta.addEventListener('input', autoResize);
-      autoResize();
-      ta.focus();
-    }
-  </script>
-</body>
-</html>
+    </script>
+  </body>
+  </html>
+

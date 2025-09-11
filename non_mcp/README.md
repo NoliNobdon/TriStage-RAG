@@ -81,6 +81,17 @@ python non_mcp\respond_stage3.py "your question"
 python non_mcp\respond_stage3.py "your question" documents
 ```
 
+Compare Gemma-only vs Gemma+BM25 on your docs (A/B):
+
+```cmd
+:: One-off query A/B
+python non_mcp\ab_compare.py --docs-dir "C:\path\to\docs" --query "your question" --top-k 5
+
+:: Multiple queries from a text file (one per line)
+python non_mcp\ab_compare.py --docs-dir "C:\path\to\docs" --queries-file queries.txt --top-k 5
+```
+This prints Stage 1/2/3 timings and the top-1 result for both runs side by side, and declares a quick winner by top-1 final_score.
+
 CLI options include:
 - `--models-dir` (default: `../models`)
 - `--data-dir` (default: `../data`)

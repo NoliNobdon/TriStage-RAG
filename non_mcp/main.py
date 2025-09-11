@@ -276,17 +276,23 @@ class ThreeStageRetrievalSystem:
             final_results = self.stage3.rerank(query, rescored[:20])  # Top 20 rescored
             stage3_time = time.time() - stage3_start
             
-            # Prepare results
+            # Prepare results (prefer Stage 3 score; fall back sensibly)
             results = []
             for i, result in enumerate(final_results[:top_k]):
+                s1 = result.get("stage1_score")
+                if s1 is None:
+                    s1 = result.get("score", 0)
+                s2 = result.get("stage2_score", 0)
+                s3 = result.get("stage3_score", 0)
+                final_s = s3 if s3 is not None else (s2 if s2 is not None else (s1 if s1 is not None else 0))
                 results.append({
                     "rank": i + 1,
                     "doc_id": result.get("doc_id", f"doc_{i}"),
                     "document": result.get("document", ""),
-                    "final_score": result.get("score", 0),
-                    "stage1_score": result.get("stage1_score", 0),
-                    "stage2_score": result.get("stage2_score", 0),
-                    "stage3_score": result.get("stage3_score", 0)
+                    "final_score": final_s,
+                    "stage1_score": s1 if s1 is not None else 0,
+                    "stage2_score": s2 if s2 is not None else 0,
+                    "stage3_score": s3 if s3 is not None else 0
                 })
             
             total_time = time.time() - start_time

@@ -134,10 +134,21 @@ class BenchmarkConfig:
         return self.get("benchmark.low_memory_config", {})
     
     def get_pipeline_overrides(self) -> Dict[str, Any]:
-        """Get pipeline configuration overrides"""
+        """Get pipeline configuration overrides.
+
+        Returns a merged dict of overrides from two sources:
+        - benchmark.pipeline_overrides: explicit user overrides (e.g., batch sizes)
+        - benchmark.low_memory_config: applied when low_memory_mode is true
+
+        Explicit overrides take precedence over low-memory defaults.
+        """
+        explicit = self.get("benchmark.pipeline_overrides", {}) or {}
         if self.is_low_memory_mode():
-            return self.get_low_memory_config()
-        return {}
+            lm = self.get_low_memory_config() or {}
+            merged = dict(lm)
+            merged.update(explicit)
+            return merged
+        return explicit
     
     def __str__(self) -> str:
         """String representation of configuration"""

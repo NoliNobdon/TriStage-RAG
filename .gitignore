@@ -94,3 +94,14 @@ benchmark/mteb_results
 data
 documents
 faiss_index
+ab_runs/compile_subset.py
+ab_runs/queries.txt
+ab_runs/run_ab_compare.bat
+ab_runs/run_embed_and_query.bat
+ab_runs/bm25_off/index/stage1_faiss.index
+ab_runs/bm25_off/index/stage1_index.pkl
+ab_runs/bm25_on/index/stage1_faiss.index
+ab_runs/bm25_on/index/stage1_index.pkl
+ab_runs/sample_docs/doc1.md
+ab_runs/bm25_on/index/stage1_faiss.index
+ab_runs/bm25_on/index/stage1_index.pkl

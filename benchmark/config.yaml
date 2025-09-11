@@ -67,7 +67,7 @@ benchmark:
     
     # Evaluation parameters
     encode_kwargs:
-      batch_size: 356  # Matches stage1 batch_size for consistency
+      batch_size: 64  # Stage 1 encode batch size for MTEB
       show_progress_bar: true
       
     # Output settings
@@ -106,3 +106,9 @@ benchmark:
     stage3_batch_size: 16
     stage3_top_k: 10
     stage3_use_fp16: false
+
+  # Optional pipeline overrides (always applied). Use this to set batch sizes without enabling low_memory_mode.
+  pipeline_overrides:
+    stage1_batch_size: 64
+    stage2_batch_size: 64
+    stage3_batch_size: 64

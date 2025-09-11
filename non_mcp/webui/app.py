@@ -201,6 +201,27 @@ def create_app() -> Flask:
             app.logger.exception(f"Failed to parse {p}")
             return ''
 
+    # ---- Jinja filters ----
+    def _highlight(text: str, query: str) -> str:
+        try:
+            import re
+            if not text or not query:
+                return text or ""
+            # Escape regex special chars in query, split into words, highlight each
+            words = [w for w in re.split(r"\s+", query.strip()) if w]
+            if not words:
+                return text
+            def repl(m):
+                return f"<mark class=hl>{m.group(0)}</mark>"
+            out = text
+            for w in words:
+                pat = re.compile(re.escape(w), flags=re.IGNORECASE)
+                out = pat.sub(repl, out)
+            return out
+        except Exception:
+            return text or ""
+    app.jinja_env.filters['hl'] = _highlight
+
     @app.route("/", methods=["GET"]) 
     def home():
         # Default to chat UI; the search UI is still available via POST /search from index.html
@@ -220,7 +241,8 @@ def create_app() -> Flask:
 
         try:
             result = system.search(query, top_k=top_k)
-            return render_template("index.html", query=query, top_k=top_k, result=result)
+            stats = system.get_system_info()
+            return render_template("index.html", query=query, top_k=top_k, result=result, stats=stats)
         except Exception as e:
             app.logger.exception("Search failed")
             flash(str(e), "danger")
@@ -355,7 +377,8 @@ def create_app() -> Flask:
     def embed_page():
         statuses = repo_documents_status()
         manifest = load_manifest()
-        return render_template("embed.html", statuses=statuses, manifest=manifest)
+        stats = system.get_system_info()
+        return render_template("embed.html", statuses=statuses, manifest=manifest, stats=stats)
 
     @app.route("/embed/run", methods=["POST"]) 
     def embed_run():
